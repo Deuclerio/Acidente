@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ribeiro e Filho - Assessoria em Acidentes | Seguradoras</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <script>
+        if (!sessionStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <div class="dashboard-layout">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-name">Ribeiro e Filho</div>
+                <div class="brand-tagline">Assessoria em Acidentes</div>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li class="menu-item-parent open">
+                        <a onclick="toggleSubmenu(event)">
+                            <span>Cadastros</span>
+                            <span class="menu-arrow">▶</span>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="clientes.html">Clientes</a></li>
+                            <li><a href="hospitais.html">Hospitais</a></li>
+                            <li><a href="seguradoras.html" class="active">Seguradoras</a></li>
+                            <li><a href="usuarios.html">Usuários</a></li>
+                            <li><a href="processos.html">Processos</a></li>
+                            <li><a href="pagamentos.html">Pagamentos Mensais</a></li>
+                            <li><a href="prescricoes.html">Prescrição</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="acidentes.html">Acidentes</a></li>
+                    <li><a href="relatorios.html">Relatórios</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Seguradoras</h1>
+                <div class="header-user">
+                    <span class="header-user-name" id="headerUserName"></span>
+                    <a href="index.html" class="logout-btn" onclick="sessionStorage.removeItem('loggedIn'); sessionStorage.removeItem('username');">Sair</a>
+                </div>
+            </header>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Cadastro de Seguradoras</h2>
+                    <button class="btn btn-primary" onclick="openModalSeguradora()">+ Nova Seguradora</button>
+                </div>
+                <div class="filters-bar">
+                    <div class="filters-row">
+                        <div class="form-group filter-item">
+                            <label for="filtroSeguradoraNome">Nome</label>
+                            <input type="text" id="filtroSeguradoraNome" placeholder="Nome da seguradora..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroSeguradoraCnpj">CNPJ</label>
+                            <input type="text" id="filtroSeguradoraCnpj" placeholder="00.000.000/0000-00" class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroSeguradoraTelefone">Telefone</label>
+                            <input type="text" id="filtroSeguradoraTelefone" placeholder="(00) 0000-0000" class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroSeguradoraEstado">Estado</label>
+                            <input type="text" id="filtroSeguradoraEstado" placeholder="Estado..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroSeguradoraCidade">Cidade</label>
+                            <input type="text" id="filtroSeguradoraCidade" placeholder="Cidade..." class="filter-input">
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="btn btn-primary" onclick="aplicarFiltrosSeguradoras()">Filtrar</button>
+                            <button type="button" class="btn btn-secondary" onclick="limparFiltrosSeguradoras()">Limpar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>CNPJ</th>
+                                <th>Cidade</th>
+                                <th>Estado</th>
+                                <th>Telefone</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="seguradorasTable">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="seguradorasPagination"></div>
+                <div id="seguradorasEmpty" class="empty-state" style="display: none;">
+                    <p>Nenhuma seguradora cadastrada.</p>
+                    <button class="btn btn-primary" onclick="openModalSeguradora()">Cadastrar primeira seguradora</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="mock-data.js"></script>
+    <script src="estados-cidades.js"></script>
+    <script src="autocomplete.js"></script>
+    
+    <!-- Modal Ver Seguradora -->
+    <div id="modalVerSeguradora" class="modal-overlay">
+        <div class="modal modal-view">
+            <div class="modal-header modal-view-header">
+                <div>
+                    <h3 class="modal-view-title">Dados da Seguradora</h3>
+                    <div class="modal-view-protocolo" id="viewSeguradoraNome"></div>
+                </div>
+                <button class="modal-close" onclick="fecharModalVerSeguradora()">&times;</button>
+            </div>
+            <div class="modal-body modal-view-body">
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Dados da Seguradora</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">ID</span>
+                            <span class="view-detail-value" id="viewSeguradoraId">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Nome / Razão Social</span>
+                            <span class="view-detail-value" id="viewSeguradoraNomeCompleto">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">CNPJ</span>
+                            <span class="view-detail-value" id="viewSeguradoraCnpj">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Código SUSEP</span>
+                            <span class="view-detail-value" id="viewSeguradoraCodigoSusep">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Contato Principal</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Telefone Principal</span>
+                            <span class="view-detail-value" id="viewSeguradoraTelefone">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Telefone Sinistro (24h)</span>
+                            <span class="view-detail-value" id="viewSeguradoraTelefoneSinistro">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">E-mail</span>
+                            <span class="view-detail-value" id="viewSeguradoraEmail">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Site</span>
+                            <span class="view-detail-value" id="viewSeguradoraSite">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Contato Comercial</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Nome do Contato</span>
+                            <span class="view-detail-value" id="viewSeguradoraContatoNome">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Telefone do Contato</span>
+                            <span class="view-detail-value" id="viewSeguradoraContatoTelefone">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">E-mail do Contato</span>
+                            <span class="view-detail-value" id="viewSeguradoraContatoEmail">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Endereço</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Logradouro</span>
+                            <span class="view-detail-value" id="viewSeguradoraEndereco">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Bairro</span>
+                            <span class="view-detail-value" id="viewSeguradoraBairro">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">CEP</span>
+                            <span class="view-detail-value" id="viewSeguradoraCep">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Estado</span>
+                            <span class="view-detail-value" id="viewSeguradoraEstado">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Cidade</span>
+                            <span class="view-detail-value" id="viewSeguradoraCidade">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section" id="viewSeguradoraObservacoesSection" style="display: none;">
+                    <h4 class="view-section-title">Observações</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-value" id="viewSeguradoraObservacoes" style="white-space: pre-wrap;">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Estatísticas</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Total de Acidentes Cobertos</span>
+                            <span class="view-detail-value" id="viewSeguradoraTotalAcidentes">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Processos Vinculados</span>
+                            <span class="view-detail-value" id="viewSeguradoraTotalProcessos">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer modal-view-footer">
+                <button type="button" class="btn btn-secondary" onclick="fecharModalVerSeguradora()">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="fecharModalVerSeguradora(); editSeguradora(document.getElementById('viewSeguradoraId').textContent)">Editar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Criar/Editar Seguradora -->
+    <div id="modalSeguradora" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalSeguradoraTitle">Nova Seguradora</h3>
+                <button class="modal-close" onclick="closeModalSeguradora()">&times;</button>
+            </div>
+            <form id="formSeguradora" onsubmit="saveSeguradora(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="seguradoraId">
+                    
+                    <div class="form-section-title">Dados da Seguradora</div>
+                    <div class="form-group">
+                        <label for="seguradoraNome">Nome / Razão Social *</label>
+                        <input type="text" id="seguradoraNome" required placeholder="Nome completo da seguradora">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="seguradoraCnpj">CNPJ *</label>
+                            <input type="text" id="seguradoraCnpj" required placeholder="00.000.000/0000-00">
+                        </div>
+                        <div class="form-group">
+                            <label for="seguradoraCodigoSusep">Código SUSEP</label>
+                            <input type="text" id="seguradoraCodigoSusep" placeholder="Código na SUSEP">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section-title">Contato Principal</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="seguradoraTelefone">Telefone Principal</label>
+                            <input type="tel" id="seguradoraTelefone" placeholder="(00) 0000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label for="seguradoraTelefoneSinistro">Telefone Sinistro (24h)</label>
+                            <input type="tel" id="seguradoraTelefoneSinistro" placeholder="0800 000 0000">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="seguradoraEmail">E-mail</label>
+                            <input type="email" id="seguradoraEmail" placeholder="contato@seguradora.com.br">
+                        </div>
+                        <div class="form-group">
+                            <label for="seguradoraSite">Site</label>
+                            <input type="url" id="seguradoraSite" placeholder="https://www.seguradora.com.br">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section-title">Contato Comercial</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="seguradoraContatoNome">Nome do Contato</label>
+                            <input type="text" id="seguradoraContatoNome" placeholder="Nome do representante">
+                        </div>
+                        <div class="form-group">
+                            <label for="seguradoraContatoTelefone">Telefone do Contato</label>
+                            <input type="tel" id="seguradoraContatoTelefone" placeholder="(00) 00000-0000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="seguradoraContatoEmail">E-mail do Contato</label>
+                        <input type="email" id="seguradoraContatoEmail" placeholder="representante@seguradora.com.br">
+                    </div>
+                    
+                    <div class="form-section-title">Endereço</div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label for="seguradoraEndereco">Logradouro</label>
+                            <input type="text" id="seguradoraEndereco" placeholder="Rua, Avenida, etc.">
+                        </div>
+                        <div class="form-group">
+                            <label for="seguradoraNumero">Número</label>
+                            <input type="text" id="seguradoraNumero" placeholder="Nº">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="seguradoraBairro">Bairro</label>
+                            <input type="text" id="seguradoraBairro" placeholder="Bairro">
+                        </div>
+                        <div class="form-group">
+                            <label for="seguradoraCep">CEP</label>
+                            <input type="text" id="seguradoraCep" placeholder="00000-000">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="seguradoraEstado">Estado</label>
+                            <input type="text" id="seguradoraEstado" placeholder="Digite o estado...">
+                        </div>
+                        <div class="form-group">
+                            <label for="seguradoraCidade">Cidade</label>
+                            <input type="text" id="seguradoraCidade" placeholder="Digite a cidade...">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section-title">Observações</div>
+                    <div class="form-group">
+                        <label for="seguradoraObservacoes">Observações</label>
+                        <textarea id="seguradoraObservacoes" rows="3" placeholder="Informações adicionais sobre a seguradora..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModalSeguradora()">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar Seguradora</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados centralizados
+        let seguradoras = getSeguradoras();
+        let currentPageSeguradoras = 1;
+        let autocompleteSeguradoraNome, autocompleteSeguradoraCidade, autocompleteModalSeguradoraCidade;
+
+        function getFilteredSeguradoras() {
+            const nome = (document.getElementById('filtroSeguradoraNome')?.value || '').trim().toLowerCase();
+            const cnpj = (document.getElementById('filtroSeguradoraCnpj')?.value || '').trim().replace(/\D/g, '');
+            const telefone = (document.getElementById('filtroSeguradoraTelefone')?.value || '').trim().replace(/\D/g, '');
+            const cidade = (document.getElementById('filtroSeguradoraCidade')?.value || '').trim().toLowerCase();
+            const estado = (document.getElementById('filtroSeguradoraEstado')?.value || '').trim().toUpperCase();
+            return seguradoras.filter(s => {
+                if (nome && !(s.nome || '').toLowerCase().includes(nome)) return false;
+                if (cnpj && !(s.cnpj || '').replace(/\D/g, '').includes(cnpj)) return false;
+                if (telefone && !(s.telefone || '').replace(/\D/g, '').includes(telefone)) return false;
+                if (cidade && !(s.cidade || '').toLowerCase().includes(cidade)) return false;
+                if (estado && !(s.estado || '').toUpperCase().includes(estado)) return false;
+                return true;
+            });
+        }
+        function aplicarFiltrosSeguradoras() {
+            currentPageSeguradoras = 1;
+            renderSeguradoras();
+        }
+        function limparFiltrosSeguradoras() {
+            ['filtroSeguradoraNome', 'filtroSeguradoraCnpj', 'filtroSeguradoraTelefone', 'filtroSeguradoraCidade', 'filtroSeguradoraEstado'].forEach(id => { 
+                const el = document.getElementById(id); 
+                if (el) el.value = ''; 
+            });
+            currentPageSeguradoras = 1;
+            renderSeguradoras();
+        }
+
+        function goToPageSeguradoras(p) {
+            const filtered = getFilteredSeguradoras();
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+            if (p < 1 || p > totalPages) return;
+            currentPageSeguradoras = p;
+            renderSeguradoras();
+        }
+
+        function renderSeguradoras() {
+            const tbody = document.getElementById('seguradorasTable');
+            const emptyState = document.getElementById('seguradorasEmpty');
+            const paginationEl = document.getElementById('seguradorasPagination');
+            tbody.innerHTML = '';
+            const filtered = getFilteredSeguradoras();
+            if (filtered.length === 0) {
+                emptyState.style.display = 'block';
+                paginationEl.innerHTML = '';
+                return;
+            }
+            emptyState.style.display = 'none';
+            const start = (currentPageSeguradoras - 1) * PER_PAGE;
+            const pageData = filtered.slice(start, start + PER_PAGE);
+            pageData.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.innerHTML = `
+                    <td onclick="abrirModalVerSeguradora(${s.id})">${s.id}</td>
+                    <td onclick="abrirModalVerSeguradora(${s.id})"><strong>${s.nome}</strong></td>
+                    <td onclick="abrirModalVerSeguradora(${s.id})">${s.cnpj || '-'}</td>
+                    <td onclick="abrirModalVerSeguradora(${s.id})">${s.cidade || '-'}</td>
+                    <td onclick="abrirModalVerSeguradora(${s.id})">${s.estado || '-'}</td>
+                    <td onclick="abrirModalVerSeguradora(${s.id})">${s.telefone || '-'}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); editSeguradora(${s.id})">Editar</button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation(); deleteSeguradora(${s.id})">Excluir</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            paginationEl.innerHTML = buildPaginationHTML(filtered.length, currentPageSeguradoras, 'goToPageSeguradoras');
+        }
+
+        function openModalSeguradora() {
+            document.getElementById('modalSeguradoraTitle').textContent = 'Nova Seguradora';
+            document.getElementById('formSeguradora').reset();
+            document.getElementById('seguradoraId').value = '';
+            document.getElementById('modalSeguradora').classList.add('active');
+        }
+
+        function closeModalSeguradora() {
+            document.getElementById('modalSeguradora').classList.remove('active');
+        }
+
+        function editSeguradora(id) {
+            const s = seguradoras.find(x => x.id == id);
+            if (!s) return;
+            document.getElementById('modalSeguradoraTitle').textContent = 'Editar Seguradora';
+            document.getElementById('seguradoraId').value = s.id;
+            document.getElementById('seguradoraNome').value = s.nome || '';
+            document.getElementById('seguradoraCnpj').value = s.cnpj || '';
+            document.getElementById('seguradoraCodigoSusep').value = s.codigoSusep || '';
+            document.getElementById('seguradoraTelefone').value = s.telefone || '';
+            document.getElementById('seguradoraTelefoneSinistro').value = s.telefoneSinistro || '';
+            document.getElementById('seguradoraEmail').value = s.email || '';
+            document.getElementById('seguradoraSite').value = s.site || '';
+            document.getElementById('seguradoraContatoNome').value = s.contatoNome || '';
+            document.getElementById('seguradoraContatoTelefone').value = s.contatoTelefone || '';
+            document.getElementById('seguradoraContatoEmail').value = s.contatoEmail || '';
+            document.getElementById('seguradoraEndereco').value = s.endereco || '';
+            document.getElementById('seguradoraNumero').value = s.numero || '';
+            document.getElementById('seguradoraBairro').value = s.bairro || '';
+            document.getElementById('seguradoraCep').value = s.cep || '';
+            document.getElementById('seguradoraEstado').value = s.estado || '';
+            document.getElementById('seguradoraCidade').value = s.cidade || '';
+            document.getElementById('seguradoraObservacoes').value = s.observacoes || '';
+            document.getElementById('modalSeguradora').classList.add('active');
+        }
+
+        function saveSeguradora(e) {
+            e.preventDefault();
+            const id = document.getElementById('seguradoraId').value;
+            const dados = {
+                nome: document.getElementById('seguradoraNome').value.trim(),
+                cnpj: document.getElementById('seguradoraCnpj').value.trim(),
+                codigoSusep: document.getElementById('seguradoraCodigoSusep').value.trim(),
+                telefone: document.getElementById('seguradoraTelefone').value.trim(),
+                telefoneSinistro: document.getElementById('seguradoraTelefoneSinistro').value.trim(),
+                email: document.getElementById('seguradoraEmail').value.trim(),
+                site: document.getElementById('seguradoraSite').value.trim(),
+                contatoNome: document.getElementById('seguradoraContatoNome').value.trim(),
+                contatoTelefone: document.getElementById('seguradoraContatoTelefone').value.trim(),
+                contatoEmail: document.getElementById('seguradoraContatoEmail').value.trim(),
+                endereco: document.getElementById('seguradoraEndereco').value.trim(),
+                numero: document.getElementById('seguradoraNumero').value.trim(),
+                bairro: document.getElementById('seguradoraBairro').value.trim(),
+                cep: document.getElementById('seguradoraCep').value.trim(),
+                estado: document.getElementById('seguradoraEstado').value.trim(),
+                cidade: document.getElementById('seguradoraCidade').value.trim(),
+                observacoes: document.getElementById('seguradoraObservacoes').value.trim()
+            };
+            if (id) {
+                const idx = seguradoras.findIndex(x => x.id == id);
+                if (idx >= 0) {
+                    seguradoras[idx] = { ...seguradoras[idx], ...dados };
+                }
+            } else {
+                const newId = seguradoras.length ? Math.max(...seguradoras.map(x => x.id)) + 1 : 1;
+                seguradoras.push({ id: newId, ...dados });
+            }
+            localStorage.setItem('seguradoras', JSON.stringify(seguradoras));
+            renderSeguradoras();
+            closeModalSeguradora();
+        }
+
+        function deleteSeguradora(id) {
+            if (confirm('Deseja realmente excluir esta seguradora?')) {
+                seguradoras = seguradoras.filter(x => x.id !== id);
+                const filtered = getFilteredSeguradoras();
+                const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+                if (currentPageSeguradoras > totalPages) currentPageSeguradoras = totalPages;
+                localStorage.setItem('seguradoras', JSON.stringify(seguradoras));
+                renderSeguradoras();
+            }
+        }
+
+        function abrirModalVerSeguradora(id) {
+            const s = seguradoras.find(x => x.id === id || x.id == id);
+            if (!s) return;
+
+            // Calcular estatísticas
+            const processos = typeof gerarProcessos === 'function' ? gerarProcessos(18, typeof gerarClientes === 'function' ? gerarClientes() : []) : [];
+            const acidentes = typeof gerarAcidentes === 'function' ? gerarAcidentes(35) : [];
+            const processosVinculados = processos.length;
+            const acidentesCobertos = acidentes.length;
+
+            // Dados da Seguradora
+            document.getElementById('viewSeguradoraNome').textContent = s.nome || '—';
+            document.getElementById('viewSeguradoraId').textContent = s.id || '—';
+            document.getElementById('viewSeguradoraNomeCompleto').textContent = s.nome || '—';
+            document.getElementById('viewSeguradoraCnpj').textContent = s.cnpj || '—';
+            document.getElementById('viewSeguradoraCodigoSusep').textContent = s.codigoSusep || '—';
+            
+            // Contato Principal
+            document.getElementById('viewSeguradoraTelefone').textContent = s.telefone || '—';
+            document.getElementById('viewSeguradoraTelefoneSinistro').textContent = s.telefoneSinistro || '—';
+            document.getElementById('viewSeguradoraEmail').textContent = s.email || '—';
+            document.getElementById('viewSeguradoraSite').textContent = s.site || '—';
+            
+            // Contato Comercial
+            document.getElementById('viewSeguradoraContatoNome').textContent = s.contatoNome || '—';
+            document.getElementById('viewSeguradoraContatoTelefone').textContent = s.contatoTelefone || '—';
+            document.getElementById('viewSeguradoraContatoEmail').textContent = s.contatoEmail || '—';
+            
+            // Endereço
+            const enderecoCompleto = [s.endereco, s.numero].filter(Boolean).join(', ');
+            document.getElementById('viewSeguradoraEndereco').textContent = enderecoCompleto || '—';
+            document.getElementById('viewSeguradoraBairro').textContent = s.bairro || '—';
+            document.getElementById('viewSeguradoraCep').textContent = s.cep || '—';
+            document.getElementById('viewSeguradoraEstado').textContent = s.estado || '—';
+            document.getElementById('viewSeguradoraCidade').textContent = s.cidade || '—';
+            
+            // Observações
+            const obsSection = document.getElementById('viewSeguradoraObservacoesSection');
+            if (s.observacoes && s.observacoes.trim()) {
+                document.getElementById('viewSeguradoraObservacoes').textContent = s.observacoes;
+                obsSection.style.display = 'block';
+            } else {
+                obsSection.style.display = 'none';
+            }
+            
+            // Estatísticas
+            document.getElementById('viewSeguradoraTotalAcidentes').textContent = acidentesCobertos;
+            document.getElementById('viewSeguradoraTotalProcessos').textContent = processosVinculados;
+
+            document.getElementById('modalVerSeguradora').classList.add('active');
+        }
+
+        function fecharModalVerSeguradora() {
+            document.getElementById('modalVerSeguradora').classList.remove('active');
+        }
+
+        document.getElementById('modalVerSeguradora')?.addEventListener('click', function(e) {
+            if (e.target === this) fecharModalVerSeguradora();
+        });
+
+        document.getElementById('headerUserName').textContent = sessionStorage.getItem('username') || 'Usuário';
+        renderSeguradoras();
+
+        // Submenu Cadastros
+        function toggleSubmenu(event) {
+            event.preventDefault();
+            const parent = event.target.closest('.menu-item-parent');
+            parent.classList.toggle('open');
+        }
+
+        // Menu mobile
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleMobileMenu() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        }
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        sidebarOverlay.addEventListener('click', toggleMobileMenu);
+
+        document.querySelectorAll('.sidebar-nav .submenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                }
+            });
+        });
+
+        // Inicializar autocomplete
+        window.addEventListener('DOMContentLoaded', () => {
+            autocompleteSeguradoraNome = initAutocomplete('filtroSeguradoraNome', seguradoras, {
+                minChars: 1,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(s => s.nome.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerNome = item.nome.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerNome.indexOf(lowerQuery);
+                    if (index === -1) return item.nome;
+                    const before = item.nome.substring(0, index);
+                    const match = item.nome.substring(index, index + query.length);
+                    const after = item.nome.substring(index + query.length);
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: () => aplicarFiltrosSeguradoras()
+            });
+
+            // Autocomplete de Estado-Cidade no filtro
+            const filtroSeguradoraEstadoCidadeAC = initEstadoCidadeAutocomplete('filtroSeguradoraEstado', 'filtroSeguradoraCidade', {
+                onEstadoSelect: () => {
+                    currentPageSeguradoras = 1;
+                    renderSeguradoras();
+                },
+                onCidadeSelect: () => {
+                    currentPageSeguradoras = 1;
+                    renderSeguradoras();
+                }
+            });
+
+            // Autocomplete de Estado-Cidade no modal
+            const modalSeguradoraEstadoCidadeAC = initEstadoCidadeAutocomplete('seguradoraEstado', 'seguradoraCidade');
+
+            // Busca em tempo real ao digitar ou limpar
+            let debounceFiltroSeguradoras;
+            function aplicarFiltroSeguradorasAoDigitar() {
+                clearTimeout(debounceFiltroSeguradoras);
+                debounceFiltroSeguradoras = setTimeout(function() {
+                    currentPageSeguradoras = 1;
+                    renderSeguradoras();
+                }, 300);
+            }
+            document.getElementById('filtroSeguradoraNome').addEventListener('input', aplicarFiltroSeguradorasAoDigitar);
+            document.getElementById('filtroSeguradoraCnpj').addEventListener('input', aplicarFiltroSeguradorasAoDigitar);
+            document.getElementById('filtroSeguradoraTelefone').addEventListener('input', aplicarFiltroSeguradorasAoDigitar);
+            document.getElementById('filtroSeguradoraCidade').addEventListener('input', aplicarFiltroSeguradorasAoDigitar);
+            document.getElementById('filtroSeguradoraEstado').addEventListener('input', aplicarFiltroSeguradorasAoDigitar);
+        });
+    </script>
+</body>
+</html>

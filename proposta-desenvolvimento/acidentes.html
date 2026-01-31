@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ribeiro e Filho - Assessoria em Acidentes | Acidentes</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <script>
+        if (!sessionStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <div class="dashboard-layout">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-name">Ribeiro e Filho</div>
+                <div class="brand-tagline">Assessoria em Acidentes</div>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li class="menu-item-parent">
+                        <a onclick="toggleSubmenu(event)">
+                            <span>Cadastros</span>
+                            <span class="menu-arrow">▶</span>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="clientes.html">Clientes</a></li>
+                            <li><a href="hospitais.html">Hospitais</a></li>
+                            <li><a href="seguradoras.html">Seguradoras</a></li>
+                            <li><a href="usuarios.html">Usuários</a></li>
+                            <li><a href="processos.html">Processos</a></li>
+                            <li><a href="pagamentos.html">Pagamentos Mensais</a></li>
+                            <li><a href="prescricoes.html">Prescrição</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="acidentes.html" class="active">Acidentes</a></li>
+                    <li><a href="relatorios.html">Relatórios</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Registro de Acidentes</h1>
+                <div class="header-user">
+                    <span class="header-user-name" id="headerUserName"></span>
+                    <a href="index.html" class="logout-btn" onclick="sessionStorage.removeItem('loggedIn'); sessionStorage.removeItem('username');">Sair</a>
+                </div>
+            </header>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Lista de Acidentes</h2>
+                    <button class="btn btn-primary" onclick="openModalAcidente()">+ Novo Registro</button>
+                </div>
+                <div class="filters-bar">
+                    <div class="filters-row">
+                        <div class="form-group filter-item">
+                            <label for="filtroProtocolo">Protocolo</label>
+                            <input type="text" id="filtroProtocolo" placeholder="Ex.: AC2025" class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroTipo">Tipo</label>
+                            <select id="filtroTipo" class="filter-input">
+                                <option value="">Todos</option>
+                                <option value="Colisão frontal">Colisão frontal</option>
+                                <option value="Colisão traseira">Colisão traseira</option>
+                                <option value="Colisão lateral">Colisão lateral</option>
+                                <option value="Atropelamento">Atropelamento</option>
+                                <option value="Capotamento">Capotamento</option>
+                                <option value="Saída de pista">Saída de pista</option>
+                                <option value="Choque com objeto fixo">Choque com objeto fixo</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroStatus">Status</label>
+                            <select id="filtroStatus" class="filter-input">
+                                <option value="">Todos</option>
+                                <option value="Registrado">Registrado</option>
+                                <option value="Em andamento">Em andamento</option>
+                                <option value="Concluído">Concluído</option>
+                            </select>
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroDataInicio">Data inicial</label>
+                            <input type="date" id="filtroDataInicio" class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroDataFim">Data final</label>
+                            <input type="date" id="filtroDataFim" class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroEstado">Estado</label>
+                            <input type="text" id="filtroEstado" placeholder="Digite o estado..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroCidade">Cidade</label>
+                            <input type="text" id="filtroCidade" placeholder="Digite a cidade..." class="filter-input">
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="btn btn-primary" onclick="aplicarFiltros()">Filtrar</button>
+                            <button type="button" class="btn btn-secondary" onclick="limparFiltros()">Limpar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Protocolo</th>
+                                <th>Data/Hora</th>
+                                <th>Local</th>
+                                <th>Tipo</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="acidentesTable">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="acidentesPagination"></div>
+                <div id="acidentesEmpty" class="empty-state" style="display: none;">
+                    <p>Nenhum acidente registrado.</p>
+                    <button class="btn btn-primary" onclick="openModalAcidente()">Registrar primeiro acidente</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Registro de Acidente -->
+    <div id="modalAcidente" class="modal-overlay">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h3 id="modalAcidenteTitle">Novo Registro de Acidente</h3>
+                <button class="modal-close" onclick="closeModalAcidente()">&times;</button>
+            </div>
+            
+            <!-- Abas -->
+            <div class="modal-tabs">
+                <button class="tab-btn active" onclick="showTab(0)">Dados do Acidente</button>
+                <button class="tab-btn" onclick="showTab(1)">Envolvidos</button>
+                <button class="tab-btn" onclick="showTab(2)">Atendimento</button>
+                <button class="tab-btn" onclick="showTab(3)">Evidências</button>
+            </div>
+
+            <form id="formAcidente" onsubmit="saveAcidente(event)">
+                <input type="hidden" id="acidenteId">
+                
+                <!-- Aba 1: Dados do Acidente -->
+                <div class="tab-content active" data-tab="0">
+                    <div class="modal-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="acidenteData">Data do Acidente *</label>
+                                <input type="date" id="acidenteData" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="acidenteHora">Hora *</label>
+                                <input type="time" id="acidenteHora" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="acidenteTipo">Tipo de Acidente *</label>
+                            <select id="acidenteTipo" required>
+                                <option value="">Selecione...</option>
+                                <option value="Colisão frontal">Colisão frontal</option>
+                                <option value="Colisão traseira">Colisão traseira</option>
+                                <option value="Colisão lateral">Colisão lateral</option>
+                                <option value="Atropelamento">Atropelamento</option>
+                                <option value="Capotamento">Capotamento</option>
+                                <option value="Saída de pista">Saída de pista</option>
+                                <option value="Choque com objeto fixo">Choque com objeto fixo</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="acidenteEndereco">Endereço/Local *</label>
+                            <input type="text" id="acidenteEndereco" required placeholder="Rua, avenida, rodovia">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="acidenteEstado">Estado *</label>
+                                <input type="text" id="acidenteEstado" required placeholder="Digite o estado...">
+                            </div>
+                            <div class="form-group">
+                                <label for="acidenteCidade">Cidade *</label>
+                                <input type="text" id="acidenteCidade" required placeholder="Digite a cidade...">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="acidenteDescricao">Descrição do Acidente</label>
+                            <textarea id="acidenteDescricao" rows="4" placeholder="Descreva como ocorreu o acidente"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="acidenteCondicoes">Condições Climáticas</label>
+                            <select id="acidenteCondicoes">
+                                <option value="">Selecione...</option>
+                                <option value="Tempo bom">Tempo bom</option>
+                                <option value="Chuva">Chuva</option>
+                                <option value="Neblina">Neblina</option>
+                                <option value="Garoa">Garoa</option>
+                                <option value="Noite">Noite</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba 2: Envolvidos -->
+                <div class="tab-content" data-tab="1">
+                    <div class="modal-body">
+                        <h4 style="margin-bottom: 16px;">Envolvidos no Acidente</h4>
+                        <div id="envolvidosContainer">
+                            <div class="envolvido-item">
+                                <h5>Envolvido 1</h5>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Nome Completo *</label>
+                                        <input type="text" class="envolvido-nome" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>CPF</label>
+                                        <input type="text" class="envolvido-cpf" maxlength="14" placeholder="000.000.000-00">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Telefone</label>
+                                        <input type="tel" class="envolvido-telefone" placeholder="(00) 00000-0000">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Tipo</label>
+                                        <select class="envolvido-tipo">
+                                            <option value="Condutor">Condutor</option>
+                                            <option value="Passageiro">Passageiro</option>
+                                            <option value="Pedestre">Pedestre</option>
+                                            <option value="Ciclista">Ciclista</option>
+                                            <option value="Motociclista">Motociclista</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Veículo (Placa)</label>
+                                    <input type="text" class="envolvido-veiculo" placeholder="ABC-1234">
+                                </div>
+                                <div class="form-group">
+                                    <label>Seguradora</label>
+                                    <select class="envolvido-seguradora">
+                                        <option value="">Nenhuma</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addEnvolvido()">+ Adicionar Envolvido</button>
+                    </div>
+                </div>
+
+                <!-- Aba 3: Atendimento -->
+                <div class="tab-content" data-tab="2">
+                    <div class="modal-body">
+                        <h4 style="margin-bottom: 16px;">Informações de Atendimento</h4>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="acidentePoliciaAcionada">
+                                Polícia acionada
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="acidenteNumeroBO">Número do Boletim de Ocorrência</label>
+                            <input type="text" id="acidenteNumeroBO" placeholder="Ex.: 2025/123456">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="acidenteSamuAcionado">
+                                SAMU acionado
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="acidenteHospitalizacao" onchange="toggleHospital()">
+                                Houve hospitalização
+                            </label>
+                        </div>
+                        <div class="form-group" id="hospitalGroup" style="display: none;">
+                            <label for="acidenteHospital">Hospital</label>
+                            <select id="acidenteHospital">
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="acidenteVitimas">Número de Vítimas</label>
+                            <input type="number" id="acidenteVitimas" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="acidenteGravidade">Gravidade</label>
+                            <select id="acidenteGravidade">
+                                <option value="Sem vítimas">Sem vítimas</option>
+                                <option value="Leve">Leve</option>
+                                <option value="Moderado">Moderado</option>
+                                <option value="Grave">Grave</option>
+                                <option value="Fatal">Fatal</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="acidenteObservacoes">Observações do Atendimento</label>
+                            <textarea id="acidenteObservacoes" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba 4: Evidências -->
+                <div class="tab-content" data-tab="3">
+                    <div class="modal-body">
+                        <h4 style="margin-bottom: 16px;">Evidências do Acidente</h4>
+                        <div class="form-group">
+                            <label for="acidenteFotos">Fotos</label>
+                            <input type="file" id="acidenteFotos" multiple accept="image/*">
+                            <small style="color: var(--text-secondary);">Selecione uma ou mais fotos do local</small>
+                            <div id="fotosPreview" class="files-preview"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="acidenteVideos">Vídeos</label>
+                            <input type="file" id="acidenteVideos" multiple accept="video/*">
+                            <small style="color: var(--text-secondary);">Selecione vídeos do acidente</small>
+                            <div id="videosPreview" class="files-preview"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="acidenteDocumentos">Documentos</label>
+                            <input type="file" id="acidenteDocumentos" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                            <small style="color: var(--text-secondary);">BO, CNH, documentos do veículo, etc.</small>
+                            <div id="documentosPreview" class="files-preview"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModalAcidente()">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Ver Detalhes do Acidente -->
+    <div id="modalVerAcidente" class="modal-overlay" onclick="if(event.target===this) closeViewAcidente()">
+        <div class="modal modal-view-acidente" onclick="event.stopPropagation()">
+            <div class="modal-header modal-view-header">
+                <div class="modal-view-title-wrap">
+                    <h3 class="modal-view-protocolo" id="viewProtocolo">—</h3>
+                    <span class="modal-view-badge" id="viewStatusBadge">—</span>
+                </div>
+                <button type="button" class="modal-close" onclick="closeViewAcidente()" aria-label="Fechar">&times;</button>
+            </div>
+            <div class="modal-body modal-view-body">
+                <section class="view-detail-section">
+                    <h4 class="view-section-title">Dados do acidente</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Data</span>
+                            <span class="view-detail-value" id="viewData">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Hora</span>
+                            <span class="view-detail-value" id="viewHora">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Tipo</span>
+                            <span class="view-detail-value" id="viewTipo">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Local</span>
+                            <span class="view-detail-value" id="viewLocal">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Condições</span>
+                            <span class="view-detail-value" id="viewCondicoes">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Descrição</span>
+                            <span class="view-detail-value" id="viewDescricao">—</span>
+                        </div>
+                    </div>
+                </section>
+                <section class="view-detail-section">
+                    <h4 class="view-section-title">Envolvidos</h4>
+                    <div class="view-envolvidos-list" id="viewEnvolvidos">—</div>
+                </section>
+                <section class="view-detail-section">
+                    <h4 class="view-section-title">Atendimento</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Polícia acionada</span>
+                            <span class="view-detail-value" id="viewPolicia">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Nº Boletim (BO)</span>
+                            <span class="view-detail-value" id="viewBO">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">SAMU acionado</span>
+                            <span class="view-detail-value" id="viewSamu">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Hospitalização</span>
+                            <span class="view-detail-value" id="viewHospitalizacao">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Hospital</span>
+                            <span class="view-detail-value" id="viewHospital">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Vítimas</span>
+                            <span class="view-detail-value" id="viewVitimas">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Gravidade</span>
+                            <span class="view-detail-value" id="viewGravidade">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Observações</span>
+                            <span class="view-detail-value" id="viewObservacoes">—</span>
+                        </div>
+                    </div>
+                </section>
+                <div class="view-registro-info">
+                    <span class="view-detail-label">Registro em</span>
+                    <span class="view-detail-value" id="viewDataRegistro">—</span>
+                </div>
+            </div>
+            <div class="modal-footer modal-view-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeViewAcidente()">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="closeViewAcidente(); editAcidente(currentViewAcidenteId)">Editar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="mock-data.js"></script>
+    <script src="estados-cidades.js"></script>
+    <script src="autocomplete.js"></script>
+    <script src="acidentes.js"></script>
+</body>
+</html>

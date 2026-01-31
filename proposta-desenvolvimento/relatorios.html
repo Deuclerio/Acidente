@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ribeiro e Filho - Assessoria em Acidentes | Relatórios</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <script>
+        if (!sessionStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <div class="dashboard-layout">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-name">Ribeiro e Filho</div>
+                <div class="brand-tagline">Assessoria em Acidentes</div>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li class="menu-item-parent">
+                        <a onclick="toggleSubmenu(event)">
+                            <span>Cadastros</span>
+                            <span class="menu-arrow">▶</span>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="clientes.html">Clientes</a></li>
+                            <li><a href="hospitais.html">Hospitais</a></li>
+                            <li><a href="seguradoras.html">Seguradoras</a></li>
+                            <li><a href="usuarios.html">Usuários</a></li>
+                            <li><a href="processos.html">Processos</a></li>
+                            <li><a href="pagamentos.html">Pagamentos Mensais</a></li>
+                            <li><a href="prescricoes.html">Prescrição</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="acidentes.html">Acidentes</a></li>
+                    <li><a href="relatorios.html" class="active">Relatórios</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Relatórios</h1>
+                <div class="header-user">
+                    <span class="header-user-name" id="headerUserName"></span>
+                    <a href="index.html" class="logout-btn" onclick="sessionStorage.removeItem('loggedIn'); sessionStorage.removeItem('username');">Sair</a>
+                </div>
+            </header>
+
+            <!-- 1. Processos em prescrição -->
+            <div class="card relatorio-card">
+                <div class="card-header">
+                    <h2>Processos em prescrição</h2>
+                    <a href="prescricoes.html" class="btn btn-secondary">Ver todos</a>
+                </div>
+                <div class="relatorio-body">
+                    <div id="prescricaoList" class="relatorio-list"></div>
+                    <p id="prescricaoEmpty" class="relatorio-empty" style="display: none;">Nenhum prazo em alerta (prescrição ou até 90 dias).</p>
+                </div>
+            </div>
+
+            <!-- 2. Processos em andamento -->
+            <div class="card relatorio-card">
+                <div class="card-header">
+                    <h2>Processos em andamento</h2>
+                    <a href="processos.html" class="btn btn-secondary">Ver todos</a>
+                </div>
+                <div class="relatorio-body">
+                    <div id="andamentoList" class="relatorio-list"></div>
+                    <p id="andamentoEmpty" class="relatorio-empty" style="display: none;">Nenhum processo em andamento.</p>
+                </div>
+            </div>
+
+            <!-- 3. Pagamentos do mês -->
+            <div class="card relatorio-card">
+                <div class="card-header">
+                    <h2>Pagamentos do mês</h2>
+                    <a href="pagamentos.html" class="btn btn-secondary">Ver todos</a>
+                </div>
+                <div class="relatorio-body">
+                    <p class="relatorio-resumo" id="pagamentosResumo"></p>
+                    <div id="pagamentosList" class="relatorio-list"></div>
+                    <p id="pagamentosEmpty" class="relatorio-empty" style="display: none;">Nenhum pagamento no mês atual.</p>
+                </div>
+            </div>
+
+            <!-- 4. Valores por tipo de processo -->
+            <div class="card relatorio-card">
+                <div class="card-header">
+                    <h2>Valores por tipo de processo</h2>
+                </div>
+                <div class="relatorio-body">
+                    <div class="chart-container" style="height: 320px;">
+                        <canvas id="chartValoresTipo"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="mock-data.js"></script>
+    <!-- Modal Ver todos os dados -->
+    <div id="modalDadosRelatorio" class="modal-overlay">
+        <div class="modal modal-view">
+            <div class="modal-header modal-view-header">
+                <div>
+                    <h3 class="modal-view-title" id="modalDadosRelatorioTitle">Dados do registro</h3>
+                </div>
+                <button class="modal-close" onclick="fecharModalDadosRelatorio()">&times;</button>
+            </div>
+            <div class="modal-body modal-view-body">
+                <div class="view-detail-section">
+                    <div id="modalDadosRelatorioContent" class="view-detail-grid"></div>
+                </div>
+            </div>
+            <div class="modal-footer modal-view-footer">
+                <button type="button" class="btn btn-secondary" onclick="fecharModalDadosRelatorio()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleSubmenu(event) {
+            event.preventDefault();
+            const parent = event.target.closest('.menu-item-parent');
+            parent.classList.toggle('open');
+        }
+
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleMobileMenu() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        }
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        sidebarOverlay.addEventListener('click', toggleMobileMenu);
+
+        document.querySelectorAll('.sidebar-nav .submenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                }
+            });
+        });
+
+        document.getElementById('headerUserName').textContent = sessionStorage.getItem('username') || 'Usuário';
+
+        // Dados centralizados
+        let clientes = getClientes();
+        let processos = getProcessos();
+        let prescricoes = getPrescricoes();
+        let pagamentos = getPagamentos();
+
+        function formatarData(data) {
+            if (!data) return '-';
+            const d = new Date(data + 'T00:00:00');
+            return d.toLocaleDateString('pt-BR');
+        }
+
+        function formatarMoeda(valor) {
+            if (valor == null || valor === '' || isNaN(valor)) return 'R$ 0,00';
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(valor));
+        }
+
+        function calcularDiasRestantes(dataLimite) {
+            if (!dataLimite) return null;
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const limite = new Date(dataLimite + 'T00:00:00');
+            return Math.ceil((limite - hoje) / (1000 * 60 * 60 * 24));
+        }
+
+        // 1. Processos em prescrição (dias <= 90 ou já prescrito)
+        function renderPrescricao() {
+            const list = document.getElementById('prescricaoList');
+            const empty = document.getElementById('prescricaoEmpty');
+            const emAlerta = prescricoes.filter(pr => {
+                const dias = calcularDiasRestantes(pr.dataLimite);
+                return dias === null || dias <= 90;
+            });
+            list.innerHTML = '';
+            if (emAlerta.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+            emAlerta.forEach(pr => {
+                const dias = calcularDiasRestantes(pr.dataLimite);
+                const texto = dias === null ? '-' : dias < 0 ? 'Prescrito' : dias + ' dias';
+                const classe = dias !== null && dias < 0 ? 'badge-danger' : dias <= 30 ? 'badge-danger' : 'badge-warning';
+                const ref = pr.descricao || pr.processoNumero || 'Ref. ' + pr.id;
+                const cliente = clientes.find(c => c.id == pr.clienteId);
+                const nomeCliente = cliente ? cliente.nome : pr.clienteNome || '-';
+                const div = document.createElement('div');
+                div.className = 'relatorio-item relatorio-item-clickable';
+                div.onclick = function() { abrirModalDadosRelatorio('prescricao', pr.id); };
+                div.innerHTML = `
+                    <div class="relatorio-item-main">
+                        <div class="relatorio-item-head">
+                            <strong>${ref}</strong>
+                        </div>
+                        <span>${nomeCliente}</span>
+                    </div>
+                    <div class="relatorio-item-meta">
+                        <span>Data limite: ${formatarData(pr.dataLimite)}</span>
+                        <span class="badge ${classe}">${texto}</span>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // 2. Processos em andamento
+        const statusEmAndamento = ['Em andamento', 'Em análise', 'Aguardando audiência', 'Aguardando decisão'];
+
+        function renderAndamento() {
+            const list = document.getElementById('andamentoList');
+            const empty = document.getElementById('andamentoEmpty');
+            const emAndamento = processos.filter(p => statusEmAndamento.includes(p.status));
+            list.innerHTML = '';
+            if (emAndamento.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+            emAndamento.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'relatorio-item relatorio-item-clickable';
+                div.onclick = function() { abrirModalDadosRelatorio('processo', p.id); };
+                div.innerHTML = `
+                    <div class="relatorio-item-main">
+                        <div class="relatorio-item-head">
+                            <strong>${p.numero}</strong>
+                        </div>
+                        <span>${p.clienteNome || '-'}</span>
+                    </div>
+                    <div class="relatorio-item-meta">
+                        <span>${p.tipo}</span>
+                        <span class="badge badge-warning">${p.status}</span>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // 3. Pagamentos do mês
+        function renderPagamentosMes() {
+            const hoje = new Date();
+            const mesAtual = String(hoje.getFullYear()) + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+            const doMes = pagamentos.filter(pg => (pg.competencia || '').substring(0, 7) === mesAtual);
+            const total = doMes.reduce((s, pg) => s + (parseFloat(pg.valor) || 0), 0);
+            const resumo = document.getElementById('pagamentosResumo');
+            const list = document.getElementById('pagamentosList');
+            const empty = document.getElementById('pagamentosEmpty');
+            resumo.textContent = 'Total do mês: ' + formatarMoeda(total) + ' (' + doMes.length + ' pagamento(s))';
+            list.innerHTML = '';
+            if (doMes.length === 0) {
+                empty.style.display = 'block';
+                resumo.textContent = 'Total do mês: R$ 0,00 (0 pagamentos)';
+                return;
+            }
+            empty.style.display = 'none';
+            doMes.forEach(pg => {
+                const [ano, mes] = (pg.competencia || '').split('-');
+                const comp = mes + '/' + ano;
+                const sitClass = pg.situacao === 'Pago' ? 'badge-success' : pg.situacao === 'Atrasado' ? 'badge-danger' : 'badge-warning';
+                const div = document.createElement('div');
+                div.className = 'relatorio-item relatorio-item-clickable';
+                div.onclick = function() { abrirModalDadosRelatorio('pagamento', pg.id); };
+                div.innerHTML = `
+                    <div class="relatorio-item-main">
+                        <div class="relatorio-item-head">
+                            <strong>${pg.processoNumero || '-'}</strong>
+                        </div>
+                        <span>${pg.clienteNome || '-'}</span>
+                    </div>
+                    <div class="relatorio-item-meta">
+                        <span>Competência: ${comp}</span>
+                        <span><strong>${formatarMoeda(pg.valor)}</strong></span>
+                        <span class="badge ${sitClass}">${pg.situacao}</span>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // 4. Valores por tipo de processo (soma valor da causa por tipo)
+        function renderValoresPorTipo() {
+            const porTipo = {};
+            processos.forEach(p => {
+                const tipo = p.tipo || 'Outros';
+                porTipo[tipo] = (porTipo[tipo] || 0) + (parseFloat(p.valorCausa) || 0);
+            });
+            const labels = Object.keys(porTipo).sort();
+            const values = labels.map(t => porTipo[t]);
+            const cores = ['#1e3a5f', '#c9a227', '#2a4a6d', '#a67c00', '#4a6572'];
+
+            if (labels.length === 0) {
+                document.querySelector('#chartValoresTipo').parentElement.innerHTML = '<p class="relatorio-empty">Nenhum processo com valor da causa cadastrado.</p>';
+                return;
+            }
+
+            new Chart(document.getElementById('chartValoresTipo'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Valor da causa (R$)',
+                        data: values,
+                        backgroundColor: labels.map((_, i) => cores[i % cores.length]),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return formatarMoeda(ctx.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(v) {
+                                    return 'R$ ' + (v / 1000).toFixed(0) + 'k';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function itemModal(label, value, fullWidth = false) {
+            if (value == null || value === '') value = '—';
+            const extraClass = fullWidth ? ' view-detail-full' : '';
+            return '<div class="view-detail-item' + extraClass + '"><span class="view-detail-label">' + label + '</span><span class="view-detail-value">' + value + '</span></div>';
+        }
+
+        function abrirModalDadosRelatorio(tipo, id) {
+            const titleEl = document.getElementById('modalDadosRelatorioTitle');
+            const contentEl = document.getElementById('modalDadosRelatorioContent');
+            let html = '';
+
+            if (tipo === 'prescricao') {
+                const pr = prescricoes.find(x => x.id === id);
+                if (!pr) return;
+                titleEl.textContent = 'Dados da Prescrição';
+                const dias = calcularDiasRestantes(pr.dataLimite);
+                const diasTexto = dias === null ? '—' : dias < 0 ? 'Prescrito (' + Math.abs(dias) + ' dias)' : dias + ' dias restantes';
+                const statusBadge = dias !== null && dias < 0 ? '<span class="badge badge-danger">Prescrito</span>' : dias <= 30 ? '<span class="badge badge-danger">Urgente</span>' : '<span class="badge badge-warning">Em alerta</span>';
+                
+                html += itemModal('ID', pr.id);
+                html += itemModal('Status', statusBadge);
+                html += itemModal('Processo / Número', pr.processoNumero, true);
+                html += itemModal('Cliente', pr.clienteNome);
+                html += itemModal('Data limite', formatarData(pr.dataLimite));
+                html += itemModal('Dias restantes', diasTexto);
+                if (pr.descricao) html += itemModal('Descrição / Referência', pr.descricao, true);
+            } else if (tipo === 'processo') {
+                const p = processos.find(x => x.id === id);
+                if (!p) return;
+                titleEl.textContent = 'Dados do Processo';
+                const statusClass = p.status === 'Concluído' ? 'badge-success' : p.status === 'Arquivado' ? 'badge-secondary' : 'badge-warning';
+                const statusBadge = '<span class="badge ' + statusClass + '">' + p.status + '</span>';
+                
+                html += itemModal('ID', p.id);
+                html += itemModal('Status', statusBadge);
+                html += itemModal('Número', p.numero, true);
+                html += itemModal('Tipo', p.tipo);
+                html += itemModal('Data de abertura', formatarData(p.dataAbertura));
+                html += itemModal('Cliente', p.clienteNome);
+                html += itemModal('CPF', p.cpf);
+                html += itemModal('Valor da causa', formatarMoeda(p.valorCausa));
+                html += itemModal('Advogado', p.advogado);
+                if (p.observacoes) html += itemModal('Observações', p.observacoes, true);
+            } else if (tipo === 'pagamento') {
+                const pg = pagamentos.find(x => x.id === id);
+                if (!pg) return;
+                titleEl.textContent = 'Dados do Pagamento';
+                const [ano, mes] = (pg.competencia || '').split('-');
+                const comp = mes && ano ? mes + '/' + ano : pg.competencia;
+                const sitClass = pg.situacao === 'Pago' ? 'badge-success' : pg.situacao === 'Atrasado' ? 'badge-danger' : 'badge-warning';
+                const sitBadge = '<span class="badge ' + sitClass + '">' + pg.situacao + '</span>';
+                
+                html += itemModal('ID', pg.id);
+                html += itemModal('Situação', sitBadge);
+                html += itemModal('Processo', pg.processoNumero, true);
+                html += itemModal('Cliente', pg.clienteNome);
+                html += itemModal('Competência', comp);
+                html += itemModal('Valor', '<strong style="color: var(--primary); font-size: 1.1rem;">' + formatarMoeda(pg.valor) + '</strong>');
+            }
+
+            contentEl.innerHTML = html;
+            contentEl.className = 'view-detail-grid';
+            document.getElementById('modalDadosRelatorio').classList.add('active');
+        }
+
+        function fecharModalDadosRelatorio() {
+            document.getElementById('modalDadosRelatorio').classList.remove('active');
+        }
+
+        document.getElementById('modalDadosRelatorio').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalDadosRelatorio();
+        });
+
+        renderPrescricao();
+        renderAndamento();
+        renderPagamentosMes();
+        renderValoresPorTipo();
+    </script>
+</body>
+</html>

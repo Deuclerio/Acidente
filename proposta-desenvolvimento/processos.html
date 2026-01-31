@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ribeiro e Filho - Assessoria em Acidentes | Processos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <script>
+        if (!sessionStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <div class="dashboard-layout">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-name">Ribeiro e Filho</div>
+                <div class="brand-tagline">Assessoria em Acidentes</div>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li class="menu-item-parent open">
+                        <a onclick="toggleSubmenu(event)">
+                            <span>Cadastros</span>
+                            <span class="menu-arrow">▶</span>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="clientes.html">Clientes</a></li>
+                            <li><a href="hospitais.html">Hospitais</a></li>
+                            <li><a href="seguradoras.html">Seguradoras</a></li>
+                            <li><a href="usuarios.html">Usuários</a></li>
+                            <li><a href="processos.html" class="active">Processos</a></li>
+                            <li><a href="pagamentos.html">Pagamentos Mensais</a></li>
+                            <li><a href="prescricoes.html">Prescrição</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="acidentes.html">Acidentes</a></li>
+                    <li><a href="relatorios.html">Relatórios</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Cadastro do Processo</h1>
+                <div class="header-user">
+                    <span class="header-user-name" id="headerUserName"></span>
+                    <a href="index.html" class="logout-btn" onclick="sessionStorage.removeItem('loggedIn'); sessionStorage.removeItem('username');">Sair</a>
+                </div>
+            </header>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Lista de Processos</h2>
+                    <button class="btn btn-primary" onclick="openModalProcesso()">+ Novo Processo</button>
+                </div>
+                <div class="filters-bar">
+                    <div class="filters-row">
+                        <div class="form-group filter-item">
+                            <label for="filtroProcessoNumero">Nº Processo</label>
+                            <input type="text" id="filtroProcessoNumero" placeholder="Número..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroProcessoCliente">Cliente</label>
+                            <input type="text" id="filtroProcessoCliente" placeholder="Nome do cliente..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroProcessoTipo">Tipo</label>
+                            <select id="filtroProcessoTipo" class="filter-input">
+                                <option value="">Todos</option>
+                                <option value="Previdenciário">Previdenciário</option>
+                                <option value="Trabalhista">Trabalhista</option>
+                                <option value="Seguro de vida">Seguro de vida</option>
+                                <option value="Acidente">Acidente</option>
+                                <option value="Danos corporais">Danos corporais</option>
+                            </select>
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroProcessoStatus">Status</label>
+                            <select id="filtroProcessoStatus" class="filter-input">
+                                <option value="">Todos</option>
+                                <option value="Em análise">Em análise</option>
+                                <option value="Em andamento">Em andamento</option>
+                                <option value="Aguardando audiência">Aguardando audiência</option>
+                                <option value="Aguardando decisão">Aguardando decisão</option>
+                                <option value="Concluído">Concluído</option>
+                                <option value="Arquivado">Arquivado</option>
+                            </select>
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="btn btn-primary" onclick="aplicarFiltrosProcessos()">Filtrar</button>
+                            <button type="button" class="btn btn-secondary" onclick="limparFiltrosProcessos()">Limpar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container table-no-scroll">
+                    <table class="table-processos">
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th class="col-hide-md">Tipo</th>
+                                <th>Cliente</th>
+                                <th class="col-hide-sm">Data Abertura</th>
+                                <th>Status</th>
+                                <th class="col-hide-lg">Valor</th>
+                                <th class="col-hide-lg">Advogado</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="processosTable">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="processosPagination"></div>
+                <div id="processosEmpty" class="empty-state" style="display: none;">
+                    <p>Nenhum processo cadastrado.</p>
+                    <button class="btn btn-primary" onclick="openModalProcesso()">Cadastrar primeiro processo</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Criar/Editar Processo -->
+    <div id="modalProcesso" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalProcessoTitle">Novo Processo</h3>
+                <button class="modal-close" onclick="closeModalProcesso()">&times;</button>
+            </div>
+            <form id="formProcesso" onsubmit="saveProcesso(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="processoId">
+                    <div class="form-group">
+                        <label for="processoNumero">Número do processo *</label>
+                        <input type="text" id="processoNumero" required placeholder="Ex.: 0001234-56.2025.8.26.0100">
+                    </div>
+                    <div class="form-group">
+                        <label for="processoTipo">Tipo *</label>
+                        <select id="processoTipo" required>
+                            <option value="">Selecione...</option>
+                            <option value="Previdenciário">Previdenciário</option>
+                            <option value="Trabalhista">Trabalhista</option>
+                            <option value="Seguro de vida">Seguro de vida</option>
+                            <option value="Acidente">Acidente</option>
+                            <option value="Danos corporais">Danos corporais</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="processoCliente">Cliente *</label>
+                        <select id="processoCliente" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="processoCpf">CPF *</label>
+                        <input type="text" id="processoCpf" required maxlength="14" placeholder="000.000.000-00">
+                    </div>
+                    <div class="form-group">
+                        <label for="processoDataAbertura">Data de abertura *</label>
+                        <input type="date" id="processoDataAbertura" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="processoStatus">Status atual *</label>
+                        <select id="processoStatus" required>
+                            <option value="">Selecione...</option>
+                            <option value="Em análise">Em análise</option>
+                            <option value="Em andamento">Em andamento</option>
+                            <option value="Aguardando audiência">Aguardando audiência</option>
+                            <option value="Aguardando decisão">Aguardando decisão</option>
+                            <option value="Concluído">Concluído</option>
+                            <option value="Arquivado">Arquivado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="processoValorCausa">Valor da causa (R$)</label>
+                        <input type="text" id="processoValorCausa" placeholder="0,00" inputmode="decimal">
+                    </div>
+                    <div class="form-group">
+                        <label for="processoAdvogado">Advogado responsável *</label>
+                        <input type="text" id="processoAdvogado" required placeholder="Nome do advogado">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModalProcesso()">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="mock-data.js"></script>
+    <script src="autocomplete.js"></script>
+    
+    <!-- Modal Ver Processo -->
+    <div id="modalVerProcesso" class="modal-overlay">
+        <div class="modal modal-view">
+            <div class="modal-header modal-view-header">
+                <div>
+                    <h3 class="modal-view-title">Detalhes do Processo</h3>
+                    <div class="modal-view-protocolo" id="viewProcessoNumero"></div>
+                </div>
+                <button class="modal-close" onclick="fecharModalVerProcesso()">&times;</button>
+            </div>
+            <div class="modal-body modal-view-body">
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Informações Principais</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">ID</span>
+                            <span class="view-detail-value" id="viewProcessoId">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Número do Processo</span>
+                            <span class="view-detail-value" id="viewProcessoNumeroCompleto">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Tipo</span>
+                            <span class="view-detail-value" id="viewProcessoTipo">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Status</span>
+                            <span class="view-detail-value" id="viewProcessoStatus">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Cliente</span>
+                            <span class="view-detail-value" id="viewProcessoCliente">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">CPF</span>
+                            <span class="view-detail-value" id="viewProcessoCpf">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Data de Abertura</span>
+                            <span class="view-detail-value" id="viewProcessoDataAbertura">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Valor da Causa</span>
+                            <span class="view-detail-value" id="viewProcessoValorCausa">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Advogado Responsável</span>
+                            <span class="view-detail-value" id="viewProcessoAdvogado">—</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Estatísticas</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Pagamentos Vinculados</span>
+                            <span class="view-detail-value" id="viewProcessoTotalPagamentos">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Total Pago</span>
+                            <span class="view-detail-value" id="viewProcessoTotalPago">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Prescrições Vinculadas</span>
+                            <span class="view-detail-value" id="viewProcessoTotalPrescricoes">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer modal-view-footer">
+                <button type="button" class="btn btn-secondary" onclick="fecharModalVerProcesso()">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="fecharModalVerProcesso(); editProcesso(document.getElementById('viewProcessoId').textContent)">Editar</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Submenu e menu mobile
+        function toggleSubmenu(event) {
+            event.preventDefault();
+            const parent = event.target.closest('.menu-item-parent');
+            parent.classList.toggle('open');
+        }
+
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleMobileMenu() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        }
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        sidebarOverlay.addEventListener('click', toggleMobileMenu);
+
+        document.querySelectorAll('.sidebar-nav .submenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                }
+            });
+        });
+
+        document.getElementById('headerUserName').textContent = sessionStorage.getItem('username') || 'Usuário';
+
+        // Dados centralizados
+        let clientes = getClientes();
+        let processos = getProcessos();
+        let currentPageProcessos = 1;
+        let autocompleteProcessoNumero, autocompleteProcessoCliente;
+
+        function getFilteredProcessos() {
+            const numero = (document.getElementById('filtroProcessoNumero')?.value || '').trim().toLowerCase();
+            const tipo = document.getElementById('filtroProcessoTipo')?.value || '';
+            const cliente = (document.getElementById('filtroProcessoCliente')?.value || '').trim().toLowerCase();
+            const status = document.getElementById('filtroProcessoStatus')?.value || '';
+            return processos.filter(p => {
+                if (numero && !(p.numero || '').toLowerCase().includes(numero)) return false;
+                if (tipo && p.tipo !== tipo) return false;
+                if (status && p.status !== status) return false;
+                if (cliente) {
+                    const nomeCliente = (p.clienteNome || '').toLowerCase();
+                    const c = clientes.find(x => x.id == p.clienteId);
+                    const nome = c ? (c.nome || '').toLowerCase() : nomeCliente;
+                    if (!nome.includes(cliente) && !nomeCliente.includes(cliente)) return false;
+                }
+                return true;
+            });
+        }
+        function aplicarFiltrosProcessos() {
+            currentPageProcessos = 1;
+            renderProcessos();
+        }
+        function limparFiltrosProcessos() {
+            ['filtroProcessoNumero', 'filtroProcessoTipo', 'filtroProcessoCliente', 'filtroProcessoStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            currentPageProcessos = 1;
+            renderProcessos();
+        }
+
+        function goToPageProcessos(p) {
+            const filtered = getFilteredProcessos();
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+            if (p < 1 || p > totalPages) return;
+            currentPageProcessos = p;
+            renderProcessos();
+        }
+
+        function preencherClientes() {
+            const select = document.getElementById('processoCliente');
+            select.innerHTML = '<option value="">Selecione...</option>';
+            clientes.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.id;
+                option.textContent = c.nome;
+                option.dataset.cpf = c.cpf || '';
+                select.appendChild(option);
+            });
+        }
+
+        document.getElementById('processoCliente')?.addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            if (opt?.dataset?.cpf) {
+                document.getElementById('processoCpf').value = opt.dataset.cpf;
+            }
+        });
+
+        function formatarMoeda(valor) {
+            if (!valor || isNaN(valor)) return '-';
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(valor));
+        }
+
+        function parseValor(str) {
+            if (!str) return null;
+            const num = str.replace(/\D/g, '');
+            return num ? parseFloat(num) / 100 : null;
+        }
+
+        function formatarValorInput(valor) {
+            if (valor == null || valor === '') return '';
+            const v = typeof valor === 'number' ? valor : parseFloat(String(valor).replace(/\D/g, '')) / 100;
+            return isNaN(v) ? '' : v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        document.getElementById('processoValorCausa')?.addEventListener('input', function(e) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length > 2) v = v.replace(/^0+/, '') || '0';
+            e.target.value = formatarValorInput(v ? parseInt(v, 10) / 100 : '');
+        });
+
+        function renderProcessos() {
+            const tbody = document.getElementById('processosTable');
+            const emptyState = document.getElementById('processosEmpty');
+            const paginationEl = document.getElementById('processosPagination');
+            const filtered = getFilteredProcessos();
+            tbody.innerHTML = '';
+            if (filtered.length === 0) {
+                emptyState.style.display = 'block';
+                if (paginationEl) paginationEl.innerHTML = '';
+                return;
+            }
+            emptyState.style.display = 'none';
+            const start = (currentPageProcessos - 1) * PER_PAGE;
+            const pageData = filtered.slice(start, start + PER_PAGE);
+            pageData.forEach(p => {
+                const cliente = clientes.find(c => c.id == p.clienteId);
+                const nomeCliente = cliente ? cliente.nome : p.clienteNome || '-';
+                const statusClass = p.status === 'Concluído' ? 'success' : p.status === 'Arquivado' ? 'secondary' : 'warning';
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.innerHTML = `
+                    <td onclick="abrirModalVerProcesso(${p.id})"><strong>${p.numero}</strong></td>
+                    <td class="col-hide-md" onclick="abrirModalVerProcesso(${p.id})">${p.tipo}</td>
+                    <td onclick="abrirModalVerProcesso(${p.id})">${nomeCliente}</td>
+                    <td class="col-hide-sm" onclick="abrirModalVerProcesso(${p.id})">${formatarData(p.dataAbertura)}</td>
+                    <td onclick="abrirModalVerProcesso(${p.id})"><span class="badge badge-${statusClass}">${p.status}</span></td>
+                    <td class="col-hide-lg" onclick="abrirModalVerProcesso(${p.id})">${formatarMoeda(p.valorCausa)}</td>
+                    <td class="col-hide-lg" onclick="abrirModalVerProcesso(${p.id})">${p.advogado || '-'}</td>
+                    <td>
+                        <div class="actions">
+                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); editProcesso(${p.id})">Editar</button>
+                            <button type="button" class="btn btn-danger" onclick="event.stopPropagation(); deleteProcesso(${p.id})">Excluir</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            if (paginationEl) paginationEl.innerHTML = buildPaginationHTML(filtered.length, currentPageProcessos, 'goToPageProcessos');
+        }
+
+        function formatarData(data) {
+            if (!data) return '-';
+            const d = new Date(data + 'T00:00:00');
+            return d.toLocaleDateString('pt-BR');
+        }
+
+        function openModalProcesso() {
+            document.getElementById('modalProcessoTitle').textContent = 'Novo Processo';
+            document.getElementById('formProcesso').reset();
+            document.getElementById('processoId').value = '';
+            if (autocompleteModalCliente) autocompleteModalCliente.setValue('', '');
+            document.getElementById('modalProcesso').classList.add('active');
+        }
+
+        function closeModalProcesso() {
+            document.getElementById('modalProcesso').classList.remove('active');
+        }
+
+        function editProcesso(id) {
+            const p = processos.find(x => x.id == id);
+            if (!p) return;
+            document.getElementById('modalProcessoTitle').textContent = 'Editar Processo';
+            document.getElementById('processoId').value = p.id;
+            document.getElementById('processoNumero').value = p.numero;
+            document.getElementById('processoTipo').value = p.tipo;
+            
+            // Preencher autocomplete de cliente
+            if (autocompleteModalCliente && p.clienteId) {
+                const cliente = clientes.find(c => c.id == p.clienteId);
+                if (cliente) {
+                    autocompleteModalCliente.setValue(cliente.id, cliente.nome);
+                }
+            }
+            
+            document.getElementById('processoCpf').value = p.cpf || '';
+            document.getElementById('processoDataAbertura').value = p.dataAbertura || '';
+            document.getElementById('processoStatus').value = p.status || '';
+            document.getElementById('processoValorCausa').value = formatarValorInput(p.valorCausa);
+            document.getElementById('processoAdvogado').value = p.advogado || '';
+            document.getElementById('modalProcesso').classList.add('active');
+        }
+
+        function saveProcesso(e) {
+            e.preventDefault();
+            const id = document.getElementById('processoId').value;
+            const clienteId = autocompleteModalCliente ? autocompleteModalCliente.getValue() : document.getElementById('processoCliente').value;
+            const clienteNome = autocompleteModalCliente ? autocompleteModalCliente.getText() : '';
+            const dados = {
+                numero: document.getElementById('processoNumero').value.trim(),
+                tipo: document.getElementById('processoTipo').value,
+                clienteId: clienteId || null,
+                clienteNome: clienteNome || '',
+                cpf: document.getElementById('processoCpf').value.trim(),
+                dataAbertura: document.getElementById('processoDataAbertura').value,
+                status: document.getElementById('processoStatus').value,
+                valorCausa: parseValor(document.getElementById('processoValorCausa').value),
+                advogado: document.getElementById('processoAdvogado').value.trim()
+            };
+            if (id) {
+                const idx = processos.findIndex(x => x.id == id);
+                if (idx >= 0) processos[idx] = { ...processos[idx], ...dados };
+            } else {
+                const newId = processos.length ? Math.max(...processos.map(x => x.id)) + 1 : 1;
+                dados.id = newId;
+                processos.push(dados);
+            }
+            localStorage.setItem('processos', JSON.stringify(processos));
+            renderProcessos();
+            closeModalProcesso();
+        }
+
+        function deleteProcesso(id) {
+            if (confirm('Deseja realmente excluir este processo?')) {
+                processos = processos.filter(x => x.id !== id);
+                const filtered = getFilteredProcessos();
+                const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+                if (currentPageProcessos > totalPages) currentPageProcessos = totalPages;
+                renderProcessos();
+            }
+        }
+
+        function abrirModalVerProcesso(id) {
+            const p = processos.find(x => x.id === id || x.id == id);
+            if (!p) return;
+
+            const cliente = clientes.find(c => c.id == p.clienteId);
+            const nomeCliente = cliente ? cliente.nome : p.clienteNome || '-';
+            const statusClass = p.status === 'Concluído' ? 'success' : p.status === 'Arquivado' ? 'secondary' : 'warning';
+
+            // Calcular estatísticas
+            const pagamentos = typeof gerarPagamentos === 'function' ? gerarPagamentos(processos, clientes) : [];
+            const prescricoes = typeof gerarPrescricoes === 'function' ? gerarPrescricoes(35, processos, clientes) : [];
+            const pagamentosDoProcesso = pagamentos.filter(pg => pg.processoId == p.id);
+            const prescricoesDoProcesso = prescricoes.filter(pr => pr.processoId == p.id);
+            const totalPago = pagamentosDoProcesso.filter(pg => pg.situacao === 'Pago').reduce((sum, pg) => sum + (parseFloat(pg.valor) || 0), 0);
+
+            document.getElementById('viewProcessoNumero').textContent = p.numero || '—';
+            document.getElementById('viewProcessoId').textContent = p.id || '—';
+            document.getElementById('viewProcessoNumeroCompleto').textContent = p.numero || '—';
+            document.getElementById('viewProcessoTipo').textContent = p.tipo || '—';
+            document.getElementById('viewProcessoStatus').innerHTML = `<span class="badge badge-${statusClass}">${p.status || '—'}</span>`;
+            document.getElementById('viewProcessoCliente').textContent = nomeCliente;
+            document.getElementById('viewProcessoCpf').textContent = p.cpf || '—';
+            document.getElementById('viewProcessoDataAbertura').textContent = formatarData(p.dataAbertura);
+            document.getElementById('viewProcessoValorCausa').textContent = formatarMoeda(p.valorCausa);
+            document.getElementById('viewProcessoAdvogado').textContent = p.advogado || '—';
+            document.getElementById('viewProcessoTotalPagamentos').textContent = pagamentosDoProcesso.length;
+            document.getElementById('viewProcessoTotalPago').textContent = formatarMoeda(totalPago);
+            document.getElementById('viewProcessoTotalPrescricoes').textContent = prescricoesDoProcesso.length;
+
+            document.getElementById('modalVerProcesso').classList.add('active');
+        }
+
+        function fecharModalVerProcesso() {
+            document.getElementById('modalVerProcesso').classList.remove('active');
+        }
+
+        document.getElementById('modalVerProcesso')?.addEventListener('click', function(e) {
+            if (e.target === this) fecharModalVerProcesso();
+        });
+
+        preencherClientes();
+        renderProcessos();
+
+        // Autocomplete no modal
+        let autocompleteModalCliente;
+
+        // Inicializar autocomplete
+        window.addEventListener('DOMContentLoaded', () => {
+            // Autocomplete para Cliente no modal
+            autocompleteModalCliente = convertSelectToAutocomplete('processoCliente', clientes, {
+                placeholder: 'Digite o nome do cliente...',
+                getItemId: (item) => item.id,
+                getItemText: (item) => item.nome,
+                onSelect: (item) => {
+                    if (item.cpf) {
+                        document.getElementById('processoCpf').value = item.cpf;
+                    }
+                }
+            });
+            
+
+            autocompleteProcessoNumero = initAutocomplete('filtroProcessoNumero', processos, {
+                minChars: 1,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(p => p.numero.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerNumero = item.numero.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerNumero.indexOf(lowerQuery);
+                    if (index === -1) return item.numero;
+                    const before = item.numero.substring(0, index);
+                    const match = item.numero.substring(index, index + query.length);
+                    const after = item.numero.substring(index + query.length);
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: () => aplicarFiltrosProcessos()
+            });
+
+            // Criar lista de clientes únicos para autocomplete (evitar duplicatas)
+            const clientesUnicosProcessos = [...new Map(processos.map(p => [p.clienteNome, { clienteId: p.clienteId, clienteNome: p.clienteNome }])).values()];
+            
+            autocompleteProcessoCliente = initAutocomplete('filtroProcessoCliente', clientesUnicosProcessos, {
+                minChars: 1,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(p => p.clienteNome.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerNome = item.clienteNome.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerNome.indexOf(lowerQuery);
+                    if (index === -1) return item.clienteNome;
+                    const before = item.clienteNome.substring(0, index);
+                    const match = item.clienteNome.substring(index, index + query.length);
+                    const after = item.clienteNome.substring(index + query.length);
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: () => aplicarFiltrosProcessos()
+            });
+
+            // Busca em tempo real ao digitar ou limpar
+            let debounceFiltroProcessos;
+            function aplicarFiltroProcessosAoDigitar() {
+                clearTimeout(debounceFiltroProcessos);
+                debounceFiltroProcessos = setTimeout(function() {
+                    currentPageProcessos = 1;
+                    renderProcessos();
+                }, 300);
+            }
+            document.getElementById('filtroProcessoNumero').addEventListener('input', aplicarFiltroProcessosAoDigitar);
+            document.getElementById('filtroProcessoCliente').addEventListener('input', aplicarFiltroProcessosAoDigitar);
+            document.getElementById('filtroProcessoTipo').addEventListener('change', aplicarFiltrosProcessos);
+            document.getElementById('filtroProcessoStatus').addEventListener('change', aplicarFiltrosProcessos);
+        });
+    </script>
+</body>
+</html>

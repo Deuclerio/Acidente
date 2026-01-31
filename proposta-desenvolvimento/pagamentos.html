@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ribeiro e Filho - Assessoria em Acidentes | Pagamentos Mensais</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <script>
+        if (!sessionStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <div class="dashboard-layout">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-name">Ribeiro e Filho</div>
+                <div class="brand-tagline">Assessoria em Acidentes</div>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li class="menu-item-parent open">
+                        <a onclick="toggleSubmenu(event)">
+                            <span>Cadastros</span>
+                            <span class="menu-arrow">▶</span>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="clientes.html">Clientes</a></li>
+                            <li><a href="hospitais.html">Hospitais</a></li>
+                            <li><a href="seguradoras.html">Seguradoras</a></li>
+                            <li><a href="usuarios.html">Usuários</a></li>
+                            <li><a href="processos.html">Processos</a></li>
+                            <li><a href="pagamentos.html" class="active">Pagamentos Mensais</a></li>
+                            <li><a href="prescricoes.html">Prescrição</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="acidentes.html">Acidentes</a></li>
+                    <li><a href="relatorios.html">Relatórios</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Pagamentos Mensais</h1>
+                <div class="header-user">
+                    <span class="header-user-name" id="headerUserName"></span>
+                    <a href="index.html" class="logout-btn" onclick="sessionStorage.removeItem('loggedIn'); sessionStorage.removeItem('username');">Sair</a>
+                </div>
+            </header>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Lista de Pagamentos Mensais</h2>
+                    <button class="btn btn-primary" onclick="openModalPagamento()">+ Novo Pagamento</button>
+                </div>
+                <div class="filters-bar">
+                    <div class="filters-row">
+                        <div class="form-group filter-item">
+                            <label for="filtroPagamentoProcesso">Nº Processo</label>
+                            <input type="text" id="filtroPagamentoProcesso" placeholder="Número..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroPagamentoCliente">Cliente</label>
+                            <input type="text" id="filtroPagamentoCliente" placeholder="Nome do cliente..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroPagamentoSituacao">Situação</label>
+                            <select id="filtroPagamentoSituacao" class="filter-input">
+                                <option value="">Todas</option>
+                                <option value="Pendente">Pendente</option>
+                                <option value="Pago">Pago</option>
+                                <option value="Atrasado">Atrasado</option>
+                            </select>
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroPagamentoCompetenciaInicio">Competência de</label>
+                            <input type="month" id="filtroPagamentoCompetenciaInicio" class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroPagamentoCompetenciaFim">até</label>
+                            <input type="month" id="filtroPagamentoCompetenciaFim" class="filter-input">
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="btn btn-primary" onclick="aplicarFiltrosPagamentos()">Filtrar</button>
+                            <button type="button" class="btn btn-secondary" onclick="limparFiltrosPagamentos()">Limpar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Processo</th>
+                                <th>Cliente</th>
+                                <th>Competência</th>
+                                <th>Valor</th>
+                                <th>Situação</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pagamentosTable">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pagamentosPagination"></div>
+                <div id="pagamentosEmpty" class="empty-state" style="display: none;">
+                    <p>Nenhum pagamento cadastrado.</p>
+                    <button class="btn btn-primary" onclick="openModalPagamento()">Cadastrar primeiro pagamento</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Ver Pagamento -->
+    <div id="modalVerPagamento" class="modal-overlay">
+        <div class="modal modal-view">
+            <div class="modal-header modal-view-header">
+                <div>
+                    <h3 class="modal-view-title">Detalhes do Pagamento</h3>
+                    <div class="modal-view-protocolo" id="viewPagamentoProcesso"></div>
+                </div>
+                <button class="modal-close" onclick="fecharModalVerPagamento()">&times;</button>
+            </div>
+            <div class="modal-body modal-view-body">
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Informações Principais</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">ID</span>
+                            <span class="view-detail-value" id="viewPagamentoId">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Processo</span>
+                            <span class="view-detail-value" id="viewPagamentoProcessoCompleto">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Cliente</span>
+                            <span class="view-detail-value" id="viewPagamentoCliente">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Competência</span>
+                            <span class="view-detail-value" id="viewPagamentoCompetencia">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Valor</span>
+                            <span class="view-detail-value" id="viewPagamentoValor">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Situação</span>
+                            <span class="view-detail-value" id="viewPagamentoSituacao">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Data de Vencimento</span>
+                            <span class="view-detail-value" id="viewPagamentoDataVencimento">—</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Estatísticas</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Status do Processo</span>
+                            <span class="view-detail-value" id="viewPagamentoStatusProcesso">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Dias até Vencimento</span>
+                            <span class="view-detail-value" id="viewPagamentoDiasVencimento">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer modal-view-footer">
+                <button type="button" class="btn btn-secondary" onclick="fecharModalVerPagamento()">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="fecharModalVerPagamento(); editPagamento(document.getElementById('viewPagamentoId').textContent)">Editar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Criar/Editar Pagamento -->
+    <div id="modalPagamento" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalPagamentoTitle">Novo Pagamento Mensal</h3>
+                <button class="modal-close" onclick="closeModalPagamento()">&times;</button>
+            </div>
+            <form id="formPagamento" onsubmit="savePagamento(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="pagamentoId">
+                    <div class="form-group">
+                        <label for="pagamentoProcesso">Processo *</label>
+                        <select id="pagamentoProcesso" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="pagamentoCliente">Cliente *</label>
+                        <select id="pagamentoCliente" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="pagamentoCompetencia">Competência (mês/ano) *</label>
+                        <input type="month" id="pagamentoCompetencia" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pagamentoValor">Valor (R$) *</label>
+                        <input type="text" id="pagamentoValor" required placeholder="0,00" inputmode="decimal">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pagamentoSituacao">Situação *</label>
+                            <select id="pagamentoSituacao" required>
+                                <option value="">Selecione...</option>
+                                <option value="Pendente">Pendente</option>
+                                <option value="Pago">Pago</option>
+                                <option value="Atrasado">Atrasado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="pagamentoDataVencimento">Data de Vencimento</label>
+                            <input type="date" id="pagamentoDataVencimento">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModalPagamento()">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="mock-data.js"></script>
+    <script src="autocomplete.js"></script>
+    <script>
+        function toggleSubmenu(event) {
+            event.preventDefault();
+            const parent = event.target.closest('.menu-item-parent');
+            parent.classList.toggle('open');
+        }
+
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleMobileMenu() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        }
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        sidebarOverlay.addEventListener('click', toggleMobileMenu);
+
+        document.querySelectorAll('.sidebar-nav .submenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                }
+            });
+        });
+
+        document.getElementById('headerUserName').textContent = sessionStorage.getItem('username') || 'Usuário';
+
+        // Dados centralizados
+        let clientes = getClientes();
+        let processos = getProcessos();
+        let pagamentos = getPagamentos();
+        let currentPagePagamentos = 1;
+        let autocompletePagamentoProcesso, autocompletePagamentoCliente;
+
+        function getFilteredPagamentos() {
+            const processo = (document.getElementById('filtroPagamentoProcesso')?.value || '').trim().toLowerCase();
+            const cliente = (document.getElementById('filtroPagamentoCliente')?.value || '').trim().toLowerCase();
+            const situacao = document.getElementById('filtroPagamentoSituacao')?.value || '';
+            const compInicio = document.getElementById('filtroPagamentoCompetenciaInicio')?.value || '';
+            const compFim = document.getElementById('filtroPagamentoCompetenciaFim')?.value || '';
+            return pagamentos.filter(pg => {
+                if (processo && !(pg.processoNumero || '').toLowerCase().includes(processo)) return false;
+                if (cliente) {
+                    const nome = (pg.clienteNome || '').toLowerCase();
+                    const c = clientes.find(x => x.id == pg.clienteId);
+                    const nomeCliente = c ? (c.nome || '').toLowerCase() : nome;
+                    if (!nomeCliente.includes(cliente) && !nome.includes(cliente)) return false;
+                }
+                if (situacao && pg.situacao !== situacao) return false;
+                if (compInicio && (pg.competencia || '') < compInicio) return false;
+                if (compFim && (pg.competencia || '') > compFim) return false;
+                return true;
+            });
+        }
+        function aplicarFiltrosPagamentos() {
+            currentPagePagamentos = 1;
+            renderPagamentos();
+        }
+        function limparFiltrosPagamentos() {
+            ['filtroPagamentoProcesso', 'filtroPagamentoCliente', 'filtroPagamentoSituacao', 'filtroPagamentoCompetenciaInicio', 'filtroPagamentoCompetenciaFim'].forEach(id => { 
+                const el = document.getElementById(id); 
+                if (el) el.value = ''; 
+            });
+            currentPagePagamentos = 1;
+            renderPagamentos();
+        }
+
+        function goToPagePagamentos(p) {
+            const filtered = getFilteredPagamentos();
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+            if (p < 1 || p > totalPages) return;
+            currentPagePagamentos = p;
+            renderPagamentos();
+        }
+
+        function preencherProcessos() {
+            const select = document.getElementById('pagamentoProcesso');
+            select.innerHTML = '<option value="">Selecione...</option>';
+            processos.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = p.numero + (p.clienteNome ? ' - ' + p.clienteNome : '');
+                option.dataset.clienteId = p.clienteId || '';
+                select.appendChild(option);
+            });
+        }
+
+        function preencherClientes() {
+            const select = document.getElementById('pagamentoCliente');
+            select.innerHTML = '<option value="">Selecione...</option>';
+            clientes.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.id;
+                option.textContent = c.nome;
+                select.appendChild(option);
+            });
+        }
+
+        document.getElementById('pagamentoProcesso')?.addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            if (opt?.dataset?.clienteId) {
+                document.getElementById('pagamentoCliente').value = opt.dataset.clienteId;
+            }
+        });
+
+        function formatarCompetencia(competencia) {
+            if (!competencia) return '-';
+            const [ano, mes] = competencia.split('-');
+            return mes + '/' + ano;
+        }
+
+        function formatarMoeda(valor) {
+            if (valor == null || valor === '' || isNaN(valor)) return '-';
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(valor));
+        }
+
+        function parseValor(str) {
+            if (!str) return null;
+            const num = str.replace(/\D/g, '');
+            return num ? parseFloat(num) / 100 : null;
+        }
+
+        function formatarValorInput(valor) {
+            if (valor == null || valor === '') return '';
+            const v = typeof valor === 'number' ? valor : parseFloat(String(valor).replace(/\D/g, '')) / 100;
+            return isNaN(v) ? '' : v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        document.getElementById('pagamentoValor')?.addEventListener('input', function(e) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length > 2) v = v.replace(/^0+/, '') || '0';
+            e.target.value = formatarValorInput(v ? parseInt(v, 10) / 100 : '');
+        });
+
+        function renderPagamentos() {
+            const tbody = document.getElementById('pagamentosTable');
+            const emptyState = document.getElementById('pagamentosEmpty');
+            const paginationEl = document.getElementById('pagamentosPagination');
+            tbody.innerHTML = '';
+            const filtered = getFilteredPagamentos();
+            if (filtered.length === 0) {
+                emptyState.style.display = 'block';
+                if (paginationEl) paginationEl.innerHTML = '';
+                return;
+            }
+            emptyState.style.display = 'none';
+            const start = (currentPagePagamentos - 1) * PER_PAGE;
+            const pageData = filtered.slice(start, start + PER_PAGE);
+            pageData.forEach(pg => {
+                const processo = processos.find(pr => pr.id == pg.processoId);
+                const cliente = clientes.find(c => c.id == pg.clienteId);
+                const numeroProcesso = processo ? processo.numero : pg.processoNumero || '-';
+                const nomeCliente = cliente ? cliente.nome : pg.clienteNome || '-';
+                const sitClass = pg.situacao === 'Pago' ? 'success' : pg.situacao === 'Atrasado' ? 'danger' : 'warning';
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.innerHTML = `
+                    <td onclick="abrirModalVerPagamento(${pg.id})"><strong>${numeroProcesso}</strong></td>
+                    <td onclick="abrirModalVerPagamento(${pg.id})">${nomeCliente}</td>
+                    <td onclick="abrirModalVerPagamento(${pg.id})">${formatarCompetencia(pg.competencia)}</td>
+                    <td onclick="abrirModalVerPagamento(${pg.id})">${formatarMoeda(pg.valor)}</td>
+                    <td onclick="abrirModalVerPagamento(${pg.id})"><span class="badge badge-${sitClass}">${pg.situacao}</span></td>
+                    <td>
+                        <div class="actions">
+                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); editPagamento(${pg.id})">Editar</button>
+                            <button type="button" class="btn btn-danger" onclick="event.stopPropagation(); deletePagamento(${pg.id})">Excluir</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            if (paginationEl) paginationEl.innerHTML = buildPaginationHTML(filtered.length, currentPagePagamentos, 'goToPagePagamentos');
+        }
+
+        function openModalPagamento() {
+            document.getElementById('modalPagamentoTitle').textContent = 'Novo Pagamento Mensal';
+            document.getElementById('formPagamento').reset();
+            document.getElementById('pagamentoId').value = '';
+            if (autocompleteModalProcesso) autocompleteModalProcesso.setValue('', '');
+            if (autocompleteModalCliente) autocompleteModalCliente.setValue('', '');
+            document.getElementById('modalPagamento').classList.add('active');
+        }
+
+        function closeModalPagamento() {
+            document.getElementById('modalPagamento').classList.remove('active');
+        }
+
+        function editPagamento(id) {
+            const pg = pagamentos.find(x => x.id == id);
+            if (!pg) return;
+            document.getElementById('modalPagamentoTitle').textContent = 'Editar Pagamento Mensal';
+            document.getElementById('pagamentoId').value = pg.id;
+            
+            // Preencher autocomplete de processo
+            if (autocompleteModalProcesso && pg.processoId) {
+                const processo = processos.find(p => p.id == pg.processoId);
+                if (processo) {
+                    const texto = processo.numero + (processo.clienteNome ? ' - ' + processo.clienteNome : '');
+                    autocompleteModalProcesso.setValue(processo.id, texto);
+                }
+            }
+            
+            // Preencher autocomplete de cliente
+            if (autocompleteModalCliente && pg.clienteId) {
+                const cliente = clientes.find(c => c.id == pg.clienteId);
+                if (cliente) {
+                    autocompleteModalCliente.setValue(cliente.id, cliente.nome);
+                }
+            }
+            
+            document.getElementById('pagamentoCompetencia').value = pg.competencia || '';
+            document.getElementById('pagamentoValor').value = formatarValorInput(pg.valor);
+            document.getElementById('pagamentoSituacao').value = pg.situacao || 'Pendente';
+            document.getElementById('pagamentoDataVencimento').value = pg.dataVencimento || '';
+            document.getElementById('modalPagamento').classList.add('active');
+        }
+
+        function savePagamento(e) {
+            e.preventDefault();
+            const id = document.getElementById('pagamentoId').value;
+            const processoId = autocompleteModalProcesso ? autocompleteModalProcesso.getValue() : '';
+            const processoNumero = autocompleteModalProcesso ? autocompleteModalProcesso.getText().split(' - ')[0] : '';
+            const clienteId = autocompleteModalCliente ? autocompleteModalCliente.getValue() : '';
+            const clienteNome = autocompleteModalCliente ? autocompleteModalCliente.getText() : '';
+            const dados = {
+                processoId: processoId || null,
+                processoNumero: processoNumero || '',
+                clienteId: clienteId || null,
+                clienteNome: clienteNome || '',
+                competencia: document.getElementById('pagamentoCompetencia').value,
+                valor: parseValor(document.getElementById('pagamentoValor').value),
+                situacao: document.getElementById('pagamentoSituacao').value,
+                dataVencimento: document.getElementById('pagamentoDataVencimento').value
+            };
+            if (id) {
+                const idx = pagamentos.findIndex(x => x.id == id);
+                if (idx >= 0) pagamentos[idx] = { ...pagamentos[idx], ...dados };
+            } else {
+                const newId = pagamentos.length ? Math.max(...pagamentos.map(x => x.id)) + 1 : 1;
+                dados.id = newId;
+                pagamentos.push(dados);
+            }
+            localStorage.setItem('pagamentos', JSON.stringify(pagamentos));
+            renderPagamentos();
+            closeModalPagamento();
+        }
+
+        function deletePagamento(id) {
+            if (confirm('Deseja realmente excluir este pagamento?')) {
+                pagamentos = pagamentos.filter(x => x.id !== id);
+                const filtered = getFilteredPagamentos();
+                const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+                if (currentPagePagamentos > totalPages) currentPagePagamentos = totalPages;
+                localStorage.setItem('pagamentos', JSON.stringify(pagamentos));
+                renderPagamentos();
+            }
+        }
+
+        function abrirModalVerPagamento(id) {
+            const pg = pagamentos.find(x => x.id === id || x.id == id);
+            if (!pg) return;
+
+            const processo = processos.find(pr => pr.id == pg.processoId);
+            const cliente = clientes.find(c => c.id == pg.clienteId);
+            const numeroProcesso = processo ? processo.numero : pg.processoNumero || '-';
+            const nomeCliente = cliente ? cliente.nome : pg.clienteNome || '-';
+            const sitClass = pg.situacao === 'Pago' ? 'success' : pg.situacao === 'Atrasado' ? 'danger' : 'warning';
+
+            // Simular data de vencimento (último dia do mês da competência)
+            let dataVencimento = '-';
+            let diasVencimento = '-';
+            if (pg.competencia) {
+                const [ano, mes] = pg.competencia.split('-');
+                const ultimoDia = new Date(parseInt(ano), parseInt(mes), 0).getDate();
+                const dataVenc = new Date(parseInt(ano), parseInt(mes) - 1, ultimoDia);
+                dataVencimento = dataVenc.toLocaleDateString('pt-BR');
+                
+                if (pg.situacao === 'Pendente') {
+                    const hoje = new Date();
+                    hoje.setHours(0, 0, 0, 0);
+                    dataVenc.setHours(0, 0, 0, 0);
+                    const diff = Math.ceil((dataVenc - hoje) / (1000 * 60 * 60 * 24));
+                    diasVencimento = diff >= 0 ? diff + ' dias' : 'Vencido há ' + Math.abs(diff) + ' dias';
+                }
+            }
+
+            const statusProcesso = processo ? processo.status : '-';
+            const statusProcessoClass = statusProcesso === 'Concluído' ? 'success' : statusProcesso === 'Arquivado' ? 'secondary' : 'warning';
+
+            document.getElementById('viewPagamentoProcesso').textContent = numeroProcesso;
+            document.getElementById('viewPagamentoId').textContent = pg.id || '—';
+            document.getElementById('viewPagamentoProcessoCompleto').textContent = numeroProcesso;
+            document.getElementById('viewPagamentoCliente').textContent = nomeCliente;
+            document.getElementById('viewPagamentoCompetencia').textContent = formatarCompetencia(pg.competencia);
+            document.getElementById('viewPagamentoValor').textContent = formatarMoeda(pg.valor);
+            document.getElementById('viewPagamentoSituacao').innerHTML = `<span class="badge badge-${sitClass}">${pg.situacao || '—'}</span>`;
+            document.getElementById('viewPagamentoDataVencimento').textContent = dataVencimento;
+            document.getElementById('viewPagamentoStatusProcesso').innerHTML = statusProcesso ? `<span class="badge badge-${statusProcessoClass}">${statusProcesso}</span>` : '—';
+            document.getElementById('viewPagamentoDiasVencimento').textContent = diasVencimento;
+
+            document.getElementById('modalVerPagamento').classList.add('active');
+        }
+
+        function fecharModalVerPagamento() {
+            document.getElementById('modalVerPagamento').classList.remove('active');
+        }
+
+        document.getElementById('modalVerPagamento')?.addEventListener('click', function(e) {
+            if (e.target === this) fecharModalVerPagamento();
+        });
+
+        preencherProcessos();
+        preencherClientes();
+        renderPagamentos();
+
+        // Autocomplete nos modais
+        let autocompleteModalProcesso, autocompleteModalCliente;
+
+        // Inicializar autocomplete
+        window.addEventListener('DOMContentLoaded', () => {
+            // Autocomplete para Processo no modal
+            autocompleteModalProcesso = convertSelectToAutocomplete('pagamentoProcesso', processos, {
+                placeholder: 'Digite o número do processo...',
+                getItemId: (item) => item.id,
+                getItemText: (item) => item.numero + (item.clienteNome ? ' - ' + item.clienteNome : ''),
+                onSelect: (item) => {
+                    if (item.clienteId && autocompleteModalCliente) {
+                        const cliente = clientes.find(c => c.id == item.clienteId);
+                        if (cliente) {
+                            autocompleteModalCliente.setValue(cliente.id, cliente.nome);
+                        }
+                    }
+                }
+            });
+
+            // Autocomplete para Cliente no modal
+            autocompleteModalCliente = convertSelectToAutocomplete('pagamentoCliente', clientes, {
+                placeholder: 'Digite o nome do cliente...',
+                getItemId: (item) => item.id,
+                getItemText: (item) => item.nome
+            });
+            
+
+            // Criar listas únicas para autocomplete (evitar duplicatas)
+            const processosUnicos = [...new Map(pagamentos.map(p => [p.processoNumero, { processoId: p.processoId, processoNumero: p.processoNumero }])).values()];
+            const clientesUnicos = [...new Map(pagamentos.map(p => [p.clienteNome, { clienteId: p.clienteId, clienteNome: p.clienteNome }])).values()];
+            
+            autocompletePagamentoProcesso = initAutocomplete('filtroPagamentoProcesso', processosUnicos, {
+                minChars: 1,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(p => p.processoNumero.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerNumero = item.processoNumero.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerNumero.indexOf(lowerQuery);
+                    if (index === -1) return item.processoNumero;
+                    const before = item.processoNumero.substring(0, index);
+                    const match = item.processoNumero.substring(index, index + query.length);
+                    const after = item.processoNumero.substring(index + query.length);
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: () => aplicarFiltrosPagamentos()
+            });
+
+            autocompletePagamentoCliente = initAutocomplete('filtroPagamentoCliente', clientesUnicos, {
+                minChars: 1,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(p => p.clienteNome.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerNome = item.clienteNome.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerNome.indexOf(lowerQuery);
+                    if (index === -1) return item.clienteNome;
+                    const before = item.clienteNome.substring(0, index);
+                    const match = item.clienteNome.substring(index, index + query.length);
+                    const after = item.clienteNome.substring(index + query.length);
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: () => aplicarFiltrosPagamentos()
+            });
+
+            // Busca em tempo real ao digitar ou limpar
+            let debounceFiltroPagamentos;
+            function aplicarFiltroPagamentosAoDigitar() {
+                clearTimeout(debounceFiltroPagamentos);
+                debounceFiltroPagamentos = setTimeout(function() {
+                    currentPagePagamentos = 1;
+                    renderPagamentos();
+                }, 300);
+            }
+            const elPagProcesso = document.getElementById('filtroPagamentoProcesso');
+            if (elPagProcesso) elPagProcesso.addEventListener('input', aplicarFiltroPagamentosAoDigitar);
+            const elPagCliente = document.getElementById('filtroPagamentoCliente');
+            if (elPagCliente) elPagCliente.addEventListener('input', aplicarFiltroPagamentosAoDigitar);
+            document.getElementById('filtroPagamentoSituacao').addEventListener('change', aplicarFiltrosPagamentos);
+            document.getElementById('filtroPagamentoCompetenciaInicio').addEventListener('input', aplicarFiltroPagamentosAoDigitar);
+            document.getElementById('filtroPagamentoCompetenciaInicio').addEventListener('change', aplicarFiltrosPagamentos);
+            document.getElementById('filtroPagamentoCompetenciaFim').addEventListener('input', aplicarFiltroPagamentosAoDigitar);
+            document.getElementById('filtroPagamentoCompetenciaFim').addEventListener('change', aplicarFiltrosPagamentos);
+        });
+    </script>
+</body>
+</html>

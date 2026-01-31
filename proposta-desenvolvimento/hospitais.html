@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ribeiro e Filho - Assessoria em Acidentes | Hospitais</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <script>
+        if (!sessionStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <div class="dashboard-layout">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-name">Ribeiro e Filho</div>
+                <div class="brand-tagline">Assessoria em Acidentes</div>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li class="menu-item-parent open">
+                        <a onclick="toggleSubmenu(event)">
+                            <span>Cadastros</span>
+                            <span class="menu-arrow">▶</span>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="clientes.html">Clientes</a></li>
+                            <li><a href="hospitais.html" class="active">Hospitais</a></li>
+                            <li><a href="seguradoras.html">Seguradoras</a></li>
+                            <li><a href="usuarios.html">Usuários</a></li>
+                            <li><a href="processos.html">Processos</a></li>
+                            <li><a href="pagamentos.html">Pagamentos Mensais</a></li>
+                            <li><a href="prescricoes.html">Prescrição</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="acidentes.html">Acidentes</a></li>
+                    <li><a href="relatorios.html">Relatórios</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Hospitais</h1>
+                <div class="header-user">
+                    <span class="header-user-name" id="headerUserName"></span>
+                    <a href="index.html" class="logout-btn" onclick="sessionStorage.removeItem('loggedIn'); sessionStorage.removeItem('username');">Sair</a>
+                </div>
+            </header>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Lista de Hospitais</h2>
+                    <button class="btn btn-primary" onclick="openModalHospital()">+ Novo Hospital</button>
+                </div>
+                <div class="filters-bar">
+                    <div class="filters-row">
+                        <div class="form-group filter-item">
+                            <label for="filtroHospitalNome">Nome</label>
+                            <input type="text" id="filtroHospitalNome" placeholder="Nome do hospital..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroHospitalTipo">Tipo</label>
+                            <select id="filtroHospitalTipo" class="filter-input">
+                                <option value="">Todos</option>
+                                <option value="Público">Público</option>
+                                <option value="Privado">Privado</option>
+                                <option value="Filantrópico">Filantrópico</option>
+                                <option value="Universitário">Universitário</option>
+                            </select>
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroHospitalTelefone">Telefone</label>
+                            <input type="text" id="filtroHospitalTelefone" placeholder="(00) 0000-0000" class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroHospitalEstado">Estado</label>
+                            <input type="text" id="filtroHospitalEstado" placeholder="Estado..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroHospitalCidade">Cidade</label>
+                            <input type="text" id="filtroHospitalCidade" placeholder="Cidade..." class="filter-input">
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="btn btn-primary" onclick="aplicarFiltrosHospitais()">Filtrar</button>
+                            <button type="button" class="btn btn-secondary" onclick="limparFiltrosHospitais()">Limpar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Cidade</th>
+                                <th>Estado</th>
+                                <th>Telefone</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hospitaisTable">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="hospitaisPagination"></div>
+                <div id="hospitaisEmpty" class="empty-state" style="display: none;">
+                    <p>Nenhum hospital cadastrado.</p>
+                    <button class="btn btn-primary" onclick="openModalHospital()">Cadastrar primeiro hospital</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="mock-data.js"></script>
+    <script src="estados-cidades.js"></script>
+    <script src="autocomplete.js"></script>
+    
+    <!-- Modal Ver Hospital -->
+    <div id="modalVerHospital" class="modal-overlay">
+        <div class="modal modal-view">
+            <div class="modal-header modal-view-header">
+                <div>
+                    <h3 class="modal-view-title">Dados do Hospital</h3>
+                    <div class="modal-view-protocolo" id="viewHospitalNome"></div>
+                </div>
+                <button class="modal-close" onclick="fecharModalVerHospital()">&times;</button>
+            </div>
+            <div class="modal-body modal-view-body">
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Dados do Hospital</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">ID</span>
+                            <span class="view-detail-value" id="viewHospitalId">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Tipo</span>
+                            <span class="view-detail-value" id="viewHospitalTipo">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Nome Completo</span>
+                            <span class="view-detail-value" id="viewHospitalNomeCompleto">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">CNPJ</span>
+                            <span class="view-detail-value" id="viewHospitalCnpj">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">CNES</span>
+                            <span class="view-detail-value" id="viewHospitalCnes">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Contato</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Telefone Principal</span>
+                            <span class="view-detail-value" id="viewHospitalTelefone">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Telefone Secundário</span>
+                            <span class="view-detail-value" id="viewHospitalTelefone2">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">E-mail</span>
+                            <span class="view-detail-value" id="viewHospitalEmail">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Site</span>
+                            <span class="view-detail-value" id="viewHospitalSite">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Endereço</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Logradouro</span>
+                            <span class="view-detail-value" id="viewHospitalEndereco">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Bairro</span>
+                            <span class="view-detail-value" id="viewHospitalBairro">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">CEP</span>
+                            <span class="view-detail-value" id="viewHospitalCep">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Estado</span>
+                            <span class="view-detail-value" id="viewHospitalEstado">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Cidade</span>
+                            <span class="view-detail-value" id="viewHospitalCidade">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Responsável Técnico</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Nome</span>
+                            <span class="view-detail-value" id="viewHospitalResponsavel">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">CRM</span>
+                            <span class="view-detail-value" id="viewHospitalCrm">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Especialidades</span>
+                            <span class="view-detail-value" id="viewHospitalEspecialidades">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section" id="viewHospitalObservacoesSection" style="display: none;">
+                    <h4 class="view-section-title">Observações</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-value" id="viewHospitalObservacoes" style="white-space: pre-wrap;">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Estatísticas de Atendimento</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Acidentes Atendidos</span>
+                            <span class="view-detail-value" id="viewHospitalAcidentes">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Hospitalizações Registradas</span>
+                            <span class="view-detail-value" id="viewHospitalHospitalizacoes">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer modal-view-footer">
+                <button type="button" class="btn btn-secondary" onclick="fecharModalVerHospital()">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="fecharModalVerHospital(); editHospital(document.getElementById('viewHospitalId').textContent)">Editar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Criar/Editar Hospital -->
+    <div id="modalHospital" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalHospitalTitle">Novo Hospital</h3>
+                <button class="modal-close" onclick="closeModalHospital()">&times;</button>
+            </div>
+            <form id="formHospital" onsubmit="saveHospital(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="hospitalId">
+                    
+                    <div class="form-section-title">Dados do Hospital</div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label for="hospitalNome">Nome do Hospital *</label>
+                            <input type="text" id="hospitalNome" required placeholder="Nome completo do hospital">
+                        </div>
+                        <div class="form-group">
+                            <label for="hospitalTipo">Tipo</label>
+                            <select id="hospitalTipo">
+                                <option value="">Selecione...</option>
+                                <option value="Público">Público</option>
+                                <option value="Privado">Privado</option>
+                                <option value="Filantrópico">Filantrópico</option>
+                                <option value="Universitário">Universitário</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="hospitalCnpj">CNPJ</label>
+                            <input type="text" id="hospitalCnpj" placeholder="00.000.000/0000-00">
+                        </div>
+                        <div class="form-group">
+                            <label for="hospitalCnes">CNES</label>
+                            <input type="text" id="hospitalCnes" placeholder="Código CNES">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section-title">Contato</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="hospitalTelefone">Telefone Principal</label>
+                            <input type="tel" id="hospitalTelefone" placeholder="(00) 0000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label for="hospitalTelefone2">Telefone Secundário</label>
+                            <input type="tel" id="hospitalTelefone2" placeholder="(00) 0000-0000">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="hospitalEmail">E-mail</label>
+                            <input type="email" id="hospitalEmail" placeholder="contato@hospital.com.br">
+                        </div>
+                        <div class="form-group">
+                            <label for="hospitalSite">Site</label>
+                            <input type="url" id="hospitalSite" placeholder="https://www.hospital.com.br">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section-title">Endereço</div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label for="hospitalEndereco">Logradouro</label>
+                            <input type="text" id="hospitalEndereco" placeholder="Rua, Avenida, etc.">
+                        </div>
+                        <div class="form-group">
+                            <label for="hospitalNumero">Número</label>
+                            <input type="text" id="hospitalNumero" placeholder="Nº">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="hospitalBairro">Bairro</label>
+                            <input type="text" id="hospitalBairro" placeholder="Bairro">
+                        </div>
+                        <div class="form-group">
+                            <label for="hospitalCep">CEP</label>
+                            <input type="text" id="hospitalCep" placeholder="00000-000">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="hospitalEstado">Estado *</label>
+                            <input type="text" id="hospitalEstado" required placeholder="Digite o estado...">
+                        </div>
+                        <div class="form-group">
+                            <label for="hospitalCidade">Cidade *</label>
+                            <input type="text" id="hospitalCidade" required placeholder="Digite a cidade...">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section-title">Informações Adicionais</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="hospitalResponsavel">Responsável Técnico</label>
+                            <input type="text" id="hospitalResponsavel" placeholder="Nome do responsável">
+                        </div>
+                        <div class="form-group">
+                            <label for="hospitalCrm">CRM do Responsável</label>
+                            <input type="text" id="hospitalCrm" placeholder="CRM/UF 00000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="hospitalEspecialidades">Especialidades</label>
+                        <input type="text" id="hospitalEspecialidades" placeholder="Ex: Ortopedia, Neurologia, UTI...">
+                    </div>
+                    <div class="form-group">
+                        <label for="hospitalObservacoes">Observações</label>
+                        <textarea id="hospitalObservacoes" rows="3" placeholder="Informações adicionais sobre o hospital..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModalHospital()">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar Hospital</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados centralizados
+        let hospitais = getHospitais();
+        let currentPageHospitais = 1;
+        let autocompleteHospitalNome, autocompleteHospitalCidade, autocompleteModalHospitalCidade;
+
+        function getFilteredHospitais() {
+            const nome = (document.getElementById('filtroHospitalNome')?.value || '').trim().toLowerCase();
+            const tipo = (document.getElementById('filtroHospitalTipo')?.value || '').trim();
+            const telefone = (document.getElementById('filtroHospitalTelefone')?.value || '').trim().replace(/\D/g, '');
+            const cidade = (document.getElementById('filtroHospitalCidade')?.value || '').trim().toLowerCase();
+            const estado = (document.getElementById('filtroHospitalEstado')?.value || '').trim().toUpperCase();
+            return hospitais.filter(h => {
+                if (nome && !(h.nome || '').toLowerCase().includes(nome)) return false;
+                if (tipo && (h.tipo || '') !== tipo) return false;
+                if (telefone && !(h.telefone || '').replace(/\D/g, '').includes(telefone)) return false;
+                if (cidade && !(h.cidade || '').toLowerCase().includes(cidade)) return false;
+                if (estado && !(h.estado || '').toUpperCase().includes(estado)) return false;
+                return true;
+            });
+        }
+        function aplicarFiltrosHospitais() {
+            currentPageHospitais = 1;
+            renderHospitais();
+        }
+        function limparFiltrosHospitais() {
+            ['filtroHospitalNome', 'filtroHospitalTipo', 'filtroHospitalTelefone', 'filtroHospitalCidade', 'filtroHospitalEstado'].forEach(id => { 
+                const el = document.getElementById(id); 
+                if (el) el.value = ''; 
+            });
+            currentPageHospitais = 1;
+            renderHospitais();
+        }
+
+        function goToPageHospitais(p) {
+            const filtered = getFilteredHospitais();
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+            if (p < 1 || p > totalPages) return;
+            currentPageHospitais = p;
+            renderHospitais();
+        }
+
+        function renderHospitais() {
+            const tbody = document.getElementById('hospitaisTable');
+            const emptyState = document.getElementById('hospitaisEmpty');
+            const paginationEl = document.getElementById('hospitaisPagination');
+            tbody.innerHTML = '';
+            const filtered = getFilteredHospitais();
+            if (filtered.length === 0) {
+                emptyState.style.display = 'block';
+                paginationEl.innerHTML = '';
+                return;
+            }
+            emptyState.style.display = 'none';
+            const start = (currentPageHospitais - 1) * PER_PAGE;
+            const pageData = filtered.slice(start, start + PER_PAGE);
+            pageData.forEach(h => {
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.innerHTML = `
+                    <td onclick="abrirModalVerHospital(${h.id})">${h.id}</td>
+                    <td onclick="abrirModalVerHospital(${h.id})"><strong>${h.nome}</strong></td>
+                    <td onclick="abrirModalVerHospital(${h.id})">${h.cidade || '-'}</td>
+                    <td onclick="abrirModalVerHospital(${h.id})">${h.estado || '-'}</td>
+                    <td onclick="abrirModalVerHospital(${h.id})">${h.telefone || '-'}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); editHospital(${h.id})">Editar</button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation(); deleteHospital(${h.id})">Excluir</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            paginationEl.innerHTML = buildPaginationHTML(filtered.length, currentPageHospitais, 'goToPageHospitais');
+        }
+
+        function openModalHospital() {
+            document.getElementById('modalHospitalTitle').textContent = 'Novo Hospital';
+            document.getElementById('formHospital').reset();
+            document.getElementById('hospitalId').value = '';
+            document.getElementById('modalHospital').classList.add('active');
+        }
+
+        function closeModalHospital() {
+            document.getElementById('modalHospital').classList.remove('active');
+        }
+
+        function editHospital(id) {
+            const h = hospitais.find(x => x.id == id);
+            if (!h) return;
+            document.getElementById('modalHospitalTitle').textContent = 'Editar Hospital';
+            document.getElementById('hospitalId').value = h.id;
+            document.getElementById('hospitalNome').value = h.nome || '';
+            document.getElementById('hospitalTipo').value = h.tipo || '';
+            document.getElementById('hospitalCnpj').value = h.cnpj || '';
+            document.getElementById('hospitalCnes').value = h.cnes || '';
+            document.getElementById('hospitalTelefone').value = h.telefone || '';
+            document.getElementById('hospitalTelefone2').value = h.telefone2 || '';
+            document.getElementById('hospitalEmail').value = h.email || '';
+            document.getElementById('hospitalSite').value = h.site || '';
+            document.getElementById('hospitalEndereco').value = h.endereco || '';
+            document.getElementById('hospitalNumero').value = h.numero || '';
+            document.getElementById('hospitalBairro').value = h.bairro || '';
+            document.getElementById('hospitalCep').value = h.cep || '';
+            document.getElementById('hospitalEstado').value = h.estado || '';
+            document.getElementById('hospitalCidade').value = h.cidade || '';
+            document.getElementById('hospitalResponsavel').value = h.responsavel || '';
+            document.getElementById('hospitalCrm').value = h.crm || '';
+            document.getElementById('hospitalEspecialidades').value = h.especialidades || '';
+            document.getElementById('hospitalObservacoes').value = h.observacoes || '';
+            document.getElementById('modalHospital').classList.add('active');
+        }
+
+        function saveHospital(e) {
+            e.preventDefault();
+            const id = document.getElementById('hospitalId').value;
+            const dados = {
+                nome: document.getElementById('hospitalNome').value.trim(),
+                tipo: document.getElementById('hospitalTipo').value,
+                cnpj: document.getElementById('hospitalCnpj').value.trim(),
+                cnes: document.getElementById('hospitalCnes').value.trim(),
+                telefone: document.getElementById('hospitalTelefone').value.trim(),
+                telefone2: document.getElementById('hospitalTelefone2').value.trim(),
+                email: document.getElementById('hospitalEmail').value.trim(),
+                site: document.getElementById('hospitalSite').value.trim(),
+                endereco: document.getElementById('hospitalEndereco').value.trim(),
+                numero: document.getElementById('hospitalNumero').value.trim(),
+                bairro: document.getElementById('hospitalBairro').value.trim(),
+                cep: document.getElementById('hospitalCep').value.trim(),
+                estado: document.getElementById('hospitalEstado').value.trim(),
+                cidade: document.getElementById('hospitalCidade').value.trim(),
+                responsavel: document.getElementById('hospitalResponsavel').value.trim(),
+                crm: document.getElementById('hospitalCrm').value.trim(),
+                especialidades: document.getElementById('hospitalEspecialidades').value.trim(),
+                observacoes: document.getElementById('hospitalObservacoes').value.trim()
+            };
+            if (id) {
+                const idx = hospitais.findIndex(x => x.id == id);
+                if (idx >= 0) {
+                    hospitais[idx] = { ...hospitais[idx], ...dados };
+                }
+            } else {
+                const newId = hospitais.length ? Math.max(...hospitais.map(x => x.id)) + 1 : 1;
+                hospitais.push({ id: newId, ...dados });
+            }
+            localStorage.setItem('hospitais', JSON.stringify(hospitais));
+            renderHospitais();
+            closeModalHospital();
+        }
+
+        function abrirModalVerHospital(id) {
+            const h = hospitais.find(x => x.id === id || x.id == id);
+            if (!h) return;
+
+            const acidentes = typeof gerarAcidentes === 'function' ? gerarAcidentes(35) : [];
+            const acidentesAtendidos = acidentes.filter(a => a.hospitalizacao && a.hospital == h.id);
+            const hospitalizacoes = acidentesAtendidos.filter(a => a.hospitalizacao);
+
+            // Dados do Hospital
+            document.getElementById('viewHospitalNome').textContent = h.nome || '—';
+            document.getElementById('viewHospitalId').textContent = h.id || '—';
+            document.getElementById('viewHospitalTipo').textContent = h.tipo || '—';
+            document.getElementById('viewHospitalNomeCompleto').textContent = h.nome || '—';
+            document.getElementById('viewHospitalCnpj').textContent = h.cnpj || '—';
+            document.getElementById('viewHospitalCnes').textContent = h.cnes || '—';
+            
+            // Contato
+            document.getElementById('viewHospitalTelefone').textContent = h.telefone || '—';
+            document.getElementById('viewHospitalTelefone2').textContent = h.telefone2 || '—';
+            document.getElementById('viewHospitalEmail').textContent = h.email || '—';
+            document.getElementById('viewHospitalSite').textContent = h.site || '—';
+            
+            // Endereço
+            const enderecoCompleto = [h.endereco, h.numero].filter(Boolean).join(', ');
+            document.getElementById('viewHospitalEndereco').textContent = enderecoCompleto || '—';
+            document.getElementById('viewHospitalBairro').textContent = h.bairro || '—';
+            document.getElementById('viewHospitalCep').textContent = h.cep || '—';
+            document.getElementById('viewHospitalEstado').textContent = h.estado || '—';
+            document.getElementById('viewHospitalCidade').textContent = h.cidade || '—';
+            
+            // Responsável
+            document.getElementById('viewHospitalResponsavel').textContent = h.responsavel || '—';
+            document.getElementById('viewHospitalCrm').textContent = h.crm || '—';
+            document.getElementById('viewHospitalEspecialidades').textContent = h.especialidades || '—';
+            
+            // Observações
+            const obsSection = document.getElementById('viewHospitalObservacoesSection');
+            if (h.observacoes && h.observacoes.trim()) {
+                document.getElementById('viewHospitalObservacoes').textContent = h.observacoes;
+                obsSection.style.display = 'block';
+            } else {
+                obsSection.style.display = 'none';
+            }
+            
+            // Estatísticas
+            document.getElementById('viewHospitalAcidentes').textContent = acidentesAtendidos.length;
+            document.getElementById('viewHospitalHospitalizacoes').textContent = hospitalizacoes.length;
+
+            document.getElementById('modalVerHospital').classList.add('active');
+        }
+
+        function fecharModalVerHospital() {
+            document.getElementById('modalVerHospital').classList.remove('active');
+        }
+
+        document.getElementById('modalVerHospital')?.addEventListener('click', function(e) {
+            if (e.target === this) fecharModalVerHospital();
+        });
+
+        function deleteHospital(id) {
+            if (confirm('Deseja realmente excluir este hospital?')) {
+                hospitais = hospitais.filter(x => x.id !== id);
+                const filtered = getFilteredHospitais();
+                const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+                if (currentPageHospitais > totalPages) currentPageHospitais = totalPages;
+                localStorage.setItem('hospitais', JSON.stringify(hospitais));
+                renderHospitais();
+            }
+        }
+
+        document.getElementById('headerUserName').textContent = sessionStorage.getItem('username') || 'Usuário';
+        renderHospitais();
+
+        // Submenu Cadastros
+        function toggleSubmenu(event) {
+            event.preventDefault();
+            const parent = event.target.closest('.menu-item-parent');
+            parent.classList.toggle('open');
+        }
+
+        // Menu mobile
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleMobileMenu() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        }
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        sidebarOverlay.addEventListener('click', toggleMobileMenu);
+
+        document.querySelectorAll('.sidebar-nav .submenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                }
+            });
+        });
+
+        // Inicializar autocomplete
+        window.addEventListener('DOMContentLoaded', () => {
+            // Autocomplete para Nome
+            autocompleteHospitalNome = initAutocomplete('filtroHospitalNome', hospitais, {
+                minChars: 1,
+                maxResults: 10,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(h => h.nome.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerNome = item.nome.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerNome.indexOf(lowerQuery);
+                    
+                    if (index === -1) return item.nome;
+                    
+                    const before = item.nome.substring(0, index);
+                    const match = item.nome.substring(index, index + query.length);
+                    const after = item.nome.substring(index + query.length);
+                    
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: (item) => {
+                    aplicarFiltrosHospitais();
+                }
+            });
+
+            // Autocomplete de Estado-Cidade no filtro
+            const filtroHospitalEstadoCidadeAC = initEstadoCidadeAutocomplete('filtroHospitalEstado', 'filtroHospitalCidade', {
+                onEstadoSelect: () => {
+                    currentPageHospitais = 1;
+                    renderHospitais();
+                },
+                onCidadeSelect: () => {
+                    currentPageHospitais = 1;
+                    renderHospitais();
+                }
+            });
+
+            // Busca em tempo real ao digitar ou limpar
+            let debounceFiltroHospitais;
+            function aplicarFiltroHospitaisAoDigitar() {
+                clearTimeout(debounceFiltroHospitais);
+                debounceFiltroHospitais = setTimeout(function() {
+                    currentPageHospitais = 1;
+                    renderHospitais();
+                }, 300);
+            }
+            document.getElementById('filtroHospitalNome').addEventListener('input', aplicarFiltroHospitaisAoDigitar);
+            document.getElementById('filtroHospitalTipo').addEventListener('change', aplicarFiltrosHospitais);
+            document.getElementById('filtroHospitalTelefone').addEventListener('input', aplicarFiltroHospitaisAoDigitar);
+            document.getElementById('filtroHospitalCidade').addEventListener('input', aplicarFiltroHospitaisAoDigitar);
+            document.getElementById('filtroHospitalEstado').addEventListener('input', aplicarFiltroHospitaisAoDigitar);
+
+            // Autocomplete de Estado-Cidade no modal
+            const modalHospitalEstadoCidadeAC = initEstadoCidadeAutocomplete('hospitalEstado', 'hospitalCidade');
+        });
+    </script>
+</body>
+</html>

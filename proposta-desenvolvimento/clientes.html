@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ribeiro e Filho - Assessoria em Acidentes | Clientes</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <script>
+        if (!sessionStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <div class="dashboard-layout">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <!-- Coloque sua logomarca: <img src="logo.png" alt="Ribeiro e Filho" class="brand-logo"> -->
+                <div class="brand-name">Ribeiro e Filho</div>
+                <div class="brand-tagline">Assessoria em Acidentes</div>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li class="menu-item-parent open">
+                        <a onclick="toggleSubmenu(event)">
+                            <span>Cadastros</span>
+                            <span class="menu-arrow">▶</span>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="clientes.html" class="active">Clientes</a></li>
+                            <li><a href="hospitais.html">Hospitais</a></li>
+                            <li><a href="seguradoras.html">Seguradoras</a></li>
+                            <li><a href="usuarios.html">Usuários</a></li>
+                            <li><a href="processos.html">Processos</a></li>
+                            <li><a href="pagamentos.html">Pagamentos Mensais</a></li>
+                            <li><a href="prescricoes.html">Prescrição</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="acidentes.html">Acidentes</a></li>
+                    <li><a href="relatorios.html">Relatórios</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Clientes</h1>
+                <div class="header-user">
+                    <span class="header-user-name" id="headerUserName"></span>
+                    <a href="index.html" class="logout-btn" onclick="sessionStorage.removeItem('loggedIn'); sessionStorage.removeItem('username');">Sair</a>
+                </div>
+            </header>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Lista de Clientes</h2>
+                    <button class="btn btn-primary" onclick="openModal('cliente')">+ Novo Cliente</button>
+                </div>
+                <div class="filters-bar">
+                    <div class="filters-row">
+                        <div class="form-group filter-item">
+                            <label for="filtroClienteNome">Nome</label>
+                            <input type="text" id="filtroClienteNome" placeholder="Nome do cliente..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroClienteEmail">E-mail</label>
+                            <input type="text" id="filtroClienteEmail" placeholder="E-mail..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroClienteTelefone">Telefone</label>
+                            <input type="text" id="filtroClienteTelefone" placeholder="(00) 00000-0000" class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroClienteEstado">Estado</label>
+                            <input type="text" id="filtroClienteEstado" placeholder="Estado..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroClienteCidade">Cidade</label>
+                            <input type="text" id="filtroClienteCidade" placeholder="Cidade..." class="filter-input">
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="btn btn-primary" onclick="aplicarFiltrosClientes()">Filtrar</button>
+                            <button type="button" class="btn btn-secondary" onclick="limparFiltrosClientes()">Limpar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Telefone</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientesTable">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="clientesPagination"></div>
+                <div id="clientesEmpty" class="empty-state" style="display: none;">
+                    <p>Nenhum cliente cadastrado.</p>
+                    <button class="btn btn-primary" onclick="openModal('cliente')">Criar primeiro cliente</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="mock-data.js"></script>
+    <script src="estados-cidades.js"></script>
+    <script src="autocomplete.js"></script>
+    
+    <!-- Modal Ver Cliente -->
+    <div id="modalVerCliente" class="modal-overlay">
+        <div class="modal modal-view">
+            <div class="modal-header modal-view-header">
+                <div>
+                    <h3 class="modal-view-title">Dados do Cliente</h3>
+                    <div class="modal-view-protocolo" id="viewClienteNome"></div>
+                </div>
+                <button class="modal-close" onclick="fecharModalVerCliente()">&times;</button>
+            </div>
+            <div class="modal-body modal-view-body">
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Dados Cadastrais</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">ID</span>
+                            <span class="view-detail-value" id="viewClienteId">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Nome / Razão Social</span>
+                            <span class="view-detail-value" id="viewClienteNomeCompleto">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">CPF / CNPJ</span>
+                            <span class="view-detail-value" id="viewClienteCpfCnpj">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Contato</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">E-mail</span>
+                            <span class="view-detail-value" id="viewClienteEmail">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Telefone</span>
+                            <span class="view-detail-value" id="viewClienteTelefone">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Endereço</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Logradouro</span>
+                            <span class="view-detail-value" id="viewClienteEndereco">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Bairro</span>
+                            <span class="view-detail-value" id="viewClienteBairro">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">CEP</span>
+                            <span class="view-detail-value" id="viewClienteCep">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Estado</span>
+                            <span class="view-detail-value" id="viewClienteEstado">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Cidade</span>
+                            <span class="view-detail-value" id="viewClienteCidade">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section" id="viewClienteObservacoesSection" style="display: none;">
+                    <h4 class="view-section-title">Observações</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-value" id="viewClienteObservacoes" style="white-space: pre-wrap;">—</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Estatísticas</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Total de Processos</span>
+                            <span class="view-detail-value" id="viewClienteTotalProcessos">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Processos Ativos</span>
+                            <span class="view-detail-value" id="viewClienteProcessosAtivos">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Total de Pagamentos</span>
+                            <span class="view-detail-value" id="viewClienteTotalPagamentos">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Valor Total em Processos</span>
+                            <span class="view-detail-value" id="viewClienteValorTotal">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer modal-view-footer">
+                <button type="button" class="btn btn-secondary" onclick="fecharModalVerCliente()">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="fecharModalVerCliente(); editCliente(document.getElementById('viewClienteId').textContent)">Editar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Criar/Editar Cliente -->
+    <div id="modalCliente" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalClienteTitle">Novo Cliente</h3>
+                <button class="modal-close" onclick="closeModal('cliente')">&times;</button>
+            </div>
+            <form id="formCliente" onsubmit="saveCliente(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="clienteId">
+                    
+                    <div class="form-section-title">Dados Principais</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="clienteNome">Nome / Razão Social *</label>
+                            <input type="text" id="clienteNome" required placeholder="Nome completo ou razão social">
+                        </div>
+                        <div class="form-group">
+                            <label for="clienteCpfCnpj">CPF / CNPJ</label>
+                            <input type="text" id="clienteCpfCnpj" placeholder="00.000.000/0000-00">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section-title">Contato</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="clienteEmail">E-mail *</label>
+                            <input type="email" id="clienteEmail" required placeholder="email@exemplo.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="clienteTelefone">Telefone</label>
+                            <input type="tel" id="clienteTelefone" placeholder="(00) 00000-0000">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section-title">Endereço</div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label for="clienteEndereco">Logradouro</label>
+                            <input type="text" id="clienteEndereco" placeholder="Rua, Avenida, etc.">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="clienteBairro">Bairro</label>
+                            <input type="text" id="clienteBairro" placeholder="Bairro">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="clienteCep">CEP</label>
+                            <input type="text" id="clienteCep" placeholder="00000-000">
+                        </div>
+                        <div class="form-group">
+                            <label for="clienteEstado">Estado</label>
+                            <input type="text" id="clienteEstado" placeholder="Digite o estado...">
+                        </div>
+                        <div class="form-group">
+                            <label for="clienteCidade">Cidade</label>
+                            <input type="text" id="clienteCidade" placeholder="Digite a cidade...">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section-title">Observações</div>
+                    <div class="form-group">
+                        <label for="clienteObservacoes">Observações Adicionais</label>
+                        <textarea id="clienteObservacoes" rows="3" placeholder="Informações adicionais sobre o cliente..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('cliente')">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados centralizados
+        let clientes = getClientes();
+        let currentPageClientes = 1;
+        let autocompleteNome, autocompleteEmail;
+
+        function getFilteredClientes() {
+            const nome = (document.getElementById('filtroClienteNome')?.value || '').trim().toLowerCase();
+            const email = (document.getElementById('filtroClienteEmail')?.value || '').trim().toLowerCase();
+            const telefone = (document.getElementById('filtroClienteTelefone')?.value || '').trim().toLowerCase();
+            const cidade = (document.getElementById('filtroClienteCidade')?.value || '').trim().toLowerCase();
+            const estado = (document.getElementById('filtroClienteEstado')?.value || '').trim().toUpperCase();
+            
+            return clientes.filter(c => {
+                if (nome && !(c.nome || '').toLowerCase().includes(nome)) return false;
+                if (email && !(c.email || '').toLowerCase().includes(email)) return false;
+                if (telefone && !(c.telefone || '').toLowerCase().includes(telefone)) return false;
+                if (cidade && !(c.cidade || '').toLowerCase().includes(cidade)) return false;
+                if (estado && !(c.estado || '').toUpperCase().includes(estado)) return false;
+                return true;
+            });
+        }
+        function aplicarFiltrosClientes() {
+            currentPageClientes = 1;
+            renderClientes();
+        }
+        function limparFiltrosClientes() {
+            ['filtroClienteNome', 'filtroClienteEmail', 'filtroClienteTelefone', 'filtroClienteCidade', 'filtroClienteEstado'].forEach(id => { 
+                const el = document.getElementById(id); 
+                if (el) el.value = ''; 
+            });
+            currentPageClientes = 1;
+            renderClientes();
+        }
+
+        function goToPageClientes(p) {
+            const filtered = getFilteredClientes();
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+            if (p < 1 || p > totalPages) return;
+            currentPageClientes = p;
+            renderClientes();
+        }
+
+        function renderClientes() {
+            const tbody = document.getElementById('clientesTable');
+            const emptyState = document.getElementById('clientesEmpty');
+            const paginationEl = document.getElementById('clientesPagination');
+            tbody.innerHTML = '';
+            const filtered = getFilteredClientes();
+            if (filtered.length === 0) {
+                emptyState.style.display = 'block';
+                paginationEl.innerHTML = '';
+                return;
+            }
+            emptyState.style.display = 'none';
+            const start = (currentPageClientes - 1) * PER_PAGE;
+            const pageData = filtered.slice(start, start + PER_PAGE);
+            pageData.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.innerHTML = `
+                    <td onclick="abrirModalVerCliente(${c.id})">${c.id}</td>
+                    <td onclick="abrirModalVerCliente(${c.id})"><strong>${c.nome}</strong></td>
+                    <td onclick="abrirModalVerCliente(${c.id})">${c.email}</td>
+                    <td onclick="abrirModalVerCliente(${c.id})">${c.telefone || '-'}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); editCliente(${c.id})">Editar</button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation(); deleteCliente(${c.id})">Excluir</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            paginationEl.innerHTML = buildPaginationHTML(filtered.length, currentPageClientes, 'goToPageClientes');
+        }
+
+        function openModal(tipo) {
+            if (tipo === 'cliente') {
+                document.getElementById('modalClienteTitle').textContent = 'Novo Cliente';
+                document.getElementById('formCliente').reset();
+                document.getElementById('clienteId').value = '';
+                document.getElementById('clienteEstado').value = '';
+                document.getElementById('clienteCidade').value = '';
+                document.getElementById('modalCliente').classList.add('active');
+            }
+        }
+
+        function closeModal(tipo) {
+            if (tipo === 'cliente') {
+                document.getElementById('modalCliente').classList.remove('active');
+            }
+        }
+
+        function editCliente(id) {
+            const c = clientes.find(x => x.id == id);
+            if (!c) return;
+            
+            document.getElementById('modalClienteTitle').textContent = 'Editar Cliente';
+            document.getElementById('clienteId').value = c.id;
+            document.getElementById('clienteNome').value = c.nome || '';
+            document.getElementById('clienteEmail').value = c.email || '';
+            document.getElementById('clienteTelefone').value = c.telefone || '';
+            document.getElementById('clienteCpfCnpj').value = c.cpfCnpj || '';
+            document.getElementById('clienteEndereco').value = c.endereco || '';
+            document.getElementById('clienteBairro').value = c.bairro || '';
+            document.getElementById('clienteCep').value = c.cep || '';
+            document.getElementById('clienteEstado').value = c.estado || '';
+            document.getElementById('clienteCidade').value = c.cidade || '';
+            document.getElementById('clienteObservacoes').value = c.observacoes || '';
+            
+            // Atualizar autocomplete de cidade com base no estado
+            if (modalEstadoCidadeAC) {
+                modalEstadoCidadeAC.update();
+            }
+            
+            document.getElementById('modalCliente').classList.add('active');
+        }
+
+        function saveCliente(e) {
+            e.preventDefault();
+            const id = document.getElementById('clienteId').value;
+            const nome = document.getElementById('clienteNome').value.trim();
+            const email = document.getElementById('clienteEmail').value.trim();
+            const telefone = document.getElementById('clienteTelefone').value.trim();
+            const cpfCnpj = document.getElementById('clienteCpfCnpj').value.trim();
+            const endereco = document.getElementById('clienteEndereco').value.trim();
+            const bairro = document.getElementById('clienteBairro').value.trim();
+            const cep = document.getElementById('clienteCep').value.trim();
+            const cidade = document.getElementById('clienteCidade').value.trim();
+            const estado = document.getElementById('clienteEstado').value;
+            const observacoes = document.getElementById('clienteObservacoes').value.trim();
+            
+            if (id) {
+                const idx = clientes.findIndex(x => x.id == id);
+                if (idx >= 0) {
+                    clientes[idx] = { 
+                        ...clientes[idx], 
+                        nome, email, telefone, cpfCnpj, 
+                        endereco, bairro, cep, cidade, estado, observacoes 
+                    };
+                }
+            } else {
+                const newId = clientes.length ? Math.max(...clientes.map(x => x.id)) + 1 : 1;
+                clientes.push({ 
+                    id: newId, nome, email, telefone, cpfCnpj, 
+                    endereco, bairro, cep, cidade, estado, observacoes 
+                });
+            }
+            localStorage.setItem('clientes', JSON.stringify(clientes));
+            renderClientes();
+            closeModal('cliente');
+        }
+
+        function abrirModalVerCliente(id) {
+            const c = clientes.find(x => x.id === id || x.id == id);
+            if (!c) return;
+
+            // Carregar dados do mock para estatísticas
+            const processosDoCliente = typeof gerarProcessos === 'function' ? gerarProcessos(18, clientes).filter(p => p.clienteId == c.id) : [];
+            const pagamentosDoCliente = typeof gerarPagamentos === 'function' ? gerarPagamentos(processosDoCliente.length ? processosDoCliente : gerarProcessos(18, clientes), clientes).filter(pg => pg.clienteId == c.id) : [];
+            const processosAtivos = processosDoCliente.filter(p => ['Em andamento', 'Em análise', 'Aguardando audiência', 'Aguardando decisão'].includes(p.status || ''));
+            const valorTotal = processosDoCliente.reduce((sum, p) => sum + (parseFloat(p.valorCausa) || 0), 0);
+
+            // Dados cadastrais
+            document.getElementById('viewClienteNome').textContent = c.nome || '—';
+            document.getElementById('viewClienteId').textContent = c.id || '—';
+            document.getElementById('viewClienteNomeCompleto').textContent = c.nome || '—';
+            document.getElementById('viewClienteCpfCnpj').textContent = c.cpfCnpj || '—';
+            
+            // Contato
+            document.getElementById('viewClienteEmail').textContent = c.email || '—';
+            document.getElementById('viewClienteTelefone').textContent = c.telefone || '—';
+            
+            // Endereço
+            document.getElementById('viewClienteEndereco').textContent = c.endereco || '—';
+            document.getElementById('viewClienteBairro').textContent = c.bairro || '—';
+            document.getElementById('viewClienteCep').textContent = c.cep || '—';
+            document.getElementById('viewClienteCidade').textContent = c.cidade || '—';
+            document.getElementById('viewClienteEstado').textContent = c.estado || '—';
+            
+            // Observações (mostrar seção apenas se houver)
+            const obsSection = document.getElementById('viewClienteObservacoesSection');
+            if (c.observacoes && c.observacoes.trim()) {
+                document.getElementById('viewClienteObservacoes').textContent = c.observacoes;
+                obsSection.style.display = 'block';
+            } else {
+                obsSection.style.display = 'none';
+            }
+            
+            // Estatísticas
+            document.getElementById('viewClienteTotalProcessos').textContent = processosDoCliente.length;
+            document.getElementById('viewClienteProcessosAtivos').textContent = processosAtivos.length;
+            document.getElementById('viewClienteTotalPagamentos').textContent = pagamentosDoCliente.length;
+            document.getElementById('viewClienteValorTotal').textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotal);
+
+            document.getElementById('modalVerCliente').classList.add('active');
+        }
+
+        function fecharModalVerCliente() {
+            document.getElementById('modalVerCliente').classList.remove('active');
+        }
+
+        document.getElementById('modalVerCliente')?.addEventListener('click', function(e) {
+            if (e.target === this) fecharModalVerCliente();
+        });
+
+        function deleteCliente(id) {
+            if (confirm('Deseja realmente excluir este cliente?')) {
+                clientes = clientes.filter(x => x.id !== id);
+                const filtered = getFilteredClientes();
+                const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+                if (currentPageClientes > totalPages) currentPageClientes = totalPages;
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                renderClientes();
+            }
+        }
+
+        document.getElementById('headerUserName').textContent = sessionStorage.getItem('username') || 'Usuário';
+        
+        // Variáveis para autocomplete
+        let filtroEstadoCidadeAC, modalEstadoCidadeAC;
+        
+        // Inicializar autocomplete nos filtros
+        if (typeof initAutocomplete === 'function' && typeof initEstadoCidadeAutocomplete === 'function') {
+            autocompleteNome = initAutocomplete('filtroClienteNome', clientes.map(c => c.nome), {
+                onSelect: (item) => {
+                    document.getElementById('filtroClienteNome').value = item;
+                    currentPageClientes = 1;
+                    renderClientes();
+                }
+            });
+            
+            autocompleteEmail = initAutocomplete('filtroClienteEmail', clientes.map(c => c.email), {
+                onSelect: (item) => {
+                    document.getElementById('filtroClienteEmail').value = item;
+                    currentPageClientes = 1;
+                    renderClientes();
+                }
+            });
+            
+            // Autocomplete de Estado-Cidade nos filtros
+            filtroEstadoCidadeAC = initEstadoCidadeAutocomplete('filtroClienteEstado', 'filtroClienteCidade', {
+                onEstadoSelect: () => {
+                    currentPageClientes = 1;
+                    renderClientes();
+                },
+                onCidadeSelect: () => {
+                    currentPageClientes = 1;
+                    renderClientes();
+                }
+            });
+            
+            // Autocomplete de Estado-Cidade no modal
+            modalEstadoCidadeAC = initEstadoCidadeAutocomplete('clienteEstado', 'clienteCidade');
+        }
+        
+        // Busca em tempo real nos filtros
+        let debounceFiltroClientes;
+        function aplicarFiltroClientesAoDigitar() {
+            clearTimeout(debounceFiltroClientes);
+            debounceFiltroClientes = setTimeout(function() {
+                currentPageClientes = 1;
+                renderClientes();
+            }, 300);
+        }
+        
+        ['filtroClienteNome', 'filtroClienteEmail', 'filtroClienteTelefone', 'filtroClienteCidade', 'filtroClienteEstado'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', aplicarFiltroClientesAoDigitar);
+        });
+        
+        renderClientes();
+
+        // Submenu Cadastros
+        function toggleSubmenu(event) {
+            event.preventDefault();
+            const parent = event.target.closest('.menu-item-parent');
+            parent.classList.toggle('open');
+        }
+
+        // Menu mobile
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleMobileMenu() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        }
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        sidebarOverlay.addEventListener('click', toggleMobileMenu);
+
+        document.querySelectorAll('.sidebar-nav .submenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                }
+            });
+        });
+
+        // Inicializar autocomplete
+        window.addEventListener('DOMContentLoaded', () => {
+            // Autocomplete para Nome
+            autocompleteNome = initAutocomplete('filtroClienteNome', clientes, {
+                minChars: 1,
+                maxResults: 10,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(c => c.nome.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerNome = item.nome.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerNome.indexOf(lowerQuery);
+                    
+                    if (index === -1) return item.nome;
+                    
+                    const before = item.nome.substring(0, index);
+                    const match = item.nome.substring(index, index + query.length);
+                    const after = item.nome.substring(index + query.length);
+                    
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: (item) => {
+                    aplicarFiltrosClientes();
+                }
+            });
+
+            // Autocomplete para Email
+            autocompleteEmail = initAutocomplete('filtroClienteEmail', clientes, {
+                minChars: 1,
+                maxResults: 10,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(c => c.email.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerEmail = item.email.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerEmail.indexOf(lowerQuery);
+                    
+                    if (index === -1) return item.email;
+                    
+                    const before = item.email.substring(0, index);
+                    const match = item.email.substring(index, index + query.length);
+                    const after = item.email.substring(index + query.length);
+                    
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: (item) => {
+                    aplicarFiltrosClientes();
+                }
+            });
+
+            // Busca em tempo real: ao digitar ou limpar, atualiza o grid
+            let debounceFiltroClientes;
+            function aplicarFiltroClientesAoDigitar() {
+                clearTimeout(debounceFiltroClientes);
+                debounceFiltroClientes = setTimeout(function() {
+                    currentPageClientes = 1;
+                    renderClientes();
+                }, 300);
+            }
+            document.getElementById('filtroClienteNome').addEventListener('input', aplicarFiltroClientesAoDigitar);
+            document.getElementById('filtroClienteEmail').addEventListener('input', aplicarFiltroClientesAoDigitar);
+            document.getElementById('filtroClienteTelefone').addEventListener('input', aplicarFiltroClientesAoDigitar);
+            document.getElementById('filtroClienteEstado').addEventListener('input', aplicarFiltroClientesAoDigitar);
+            document.getElementById('filtroClienteCidade').addEventListener('input', aplicarFiltroClientesAoDigitar);
+        });
+    </script>
+</body>
+</html>

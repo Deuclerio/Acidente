@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ribeiro e Filho - Assessoria em Acidentes | Usuários</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <script>
+        if (!sessionStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <div class="dashboard-layout">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <!-- Coloque sua logomarca: <img src="logo.png" alt="Ribeiro e Filho" class="brand-logo"> -->
+                <div class="brand-name">Ribeiro e Filho</div>
+                <div class="brand-tagline">Assessoria em Acidentes</div>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li class="menu-item-parent open">
+                        <a onclick="toggleSubmenu(event)">
+                            <span>Cadastros</span>
+                            <span class="menu-arrow">▶</span>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="clientes.html">Clientes</a></li>
+                            <li><a href="hospitais.html">Hospitais</a></li>
+                            <li><a href="seguradoras.html">Seguradoras</a></li>
+                            <li><a href="usuarios.html" class="active">Usuários</a></li>
+                            <li><a href="processos.html">Processos</a></li>
+                            <li><a href="pagamentos.html">Pagamentos Mensais</a></li>
+                            <li><a href="prescricoes.html">Prescrição</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="acidentes.html">Acidentes</a></li>
+                    <li><a href="relatorios.html">Relatórios</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Usuários</h1>
+                <div class="header-user">
+                    <span class="header-user-name" id="headerUserName"></span>
+                    <a href="index.html" class="logout-btn" onclick="sessionStorage.removeItem('loggedIn'); sessionStorage.removeItem('username');">Sair</a>
+                </div>
+            </header>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Lista de Usuários</h2>
+                    <button class="btn btn-primary" onclick="openModalUsuario()">+ Novo Usuário</button>
+                </div>
+                <div class="filters-bar">
+                    <div class="filters-row">
+                        <div class="form-group filter-item">
+                            <label for="filtroUsuarioNome">Nome</label>
+                            <input type="text" id="filtroUsuarioNome" placeholder="Nome do usuário..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroUsuarioEmail">E-mail</label>
+                            <input type="text" id="filtroUsuarioEmail" placeholder="E-mail..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroUsuarioPerfil">Perfil</label>
+                            <select id="filtroUsuarioPerfil" class="filter-input">
+                                <option value="">Todos</option>
+                                <option value="Administrador">Administrador</option>
+                                <option value="Usuário">Usuário</option>
+                                <option value="Operador">Operador</option>
+                                <option value="Visualizador">Visualizador</option>
+                            </select>
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroUsuarioStatus">Status</label>
+                            <select id="filtroUsuarioStatus" class="filter-input">
+                                <option value="">Todos</option>
+                                <option value="Ativo">Ativo</option>
+                                <option value="Inativo">Inativo</option>
+                            </select>
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="btn btn-primary" onclick="aplicarFiltrosUsuarios()">Filtrar</button>
+                            <button type="button" class="btn btn-secondary" onclick="limparFiltrosUsuarios()">Limpar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Perfil</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usuariosTable">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="usuariosPagination"></div>
+                <div id="usuariosEmpty" class="empty-state" style="display: none;">
+                    <p>Nenhum usuário cadastrado.</p>
+                    <button class="btn btn-primary" onclick="openModalUsuario()">Criar primeiro usuário</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="mock-data.js"></script>
+    <script src="autocomplete.js"></script>
+    
+    <!-- Modal Ver Usuário -->
+    <div id="modalVerUsuario" class="modal-overlay">
+        <div class="modal modal-view">
+            <div class="modal-header modal-view-header">
+                <div>
+                    <h3 class="modal-view-title">Dados do Usuário</h3>
+                    <div class="modal-view-protocolo" id="viewUsuarioNome"></div>
+                </div>
+                <button class="modal-close" onclick="fecharModalVerUsuario()">&times;</button>
+            </div>
+            <div class="modal-body modal-view-body">
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Informações Principais</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">ID</span>
+                            <span class="view-detail-value" id="viewUsuarioId">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Nome Completo</span>
+                            <span class="view-detail-value" id="viewUsuarioNomeCompleto">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Email</span>
+                            <span class="view-detail-value" id="viewUsuarioEmail">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Login</span>
+                            <span class="view-detail-value" id="viewUsuarioLogin">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Perfil</span>
+                            <span class="view-detail-value" id="viewUsuarioPerfil">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Status</span>
+                            <span class="view-detail-value" id="viewUsuarioStatus">—</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Estatísticas</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Data de Cadastro</span>
+                            <span class="view-detail-value" id="viewUsuarioDataCadastro">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Último Acesso</span>
+                            <span class="view-detail-value" id="viewUsuarioUltimoAcesso">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Processos Criados</span>
+                            <span class="view-detail-value" id="viewUsuarioProcessosCriados">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer modal-view-footer">
+                <button type="button" class="btn btn-secondary" onclick="fecharModalVerUsuario()">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="fecharModalVerUsuario(); editUsuario(document.getElementById('viewUsuarioId').textContent)">Editar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Criar/Editar Usuário -->
+    <div id="modalUsuario" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalUsuarioTitle">Novo Usuário</h3>
+                <button class="modal-close" onclick="closeModalUsuario()">&times;</button>
+            </div>
+            <form id="formUsuario" onsubmit="saveUsuario(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="usuarioId">
+                    <div class="form-group">
+                        <label for="usuarioNome">Nome *</label>
+                        <input type="text" id="usuarioNome" required placeholder="Nome completo">
+                    </div>
+                    <div class="form-group">
+                        <label for="usuarioEmail">Email *</label>
+                        <input type="email" id="usuarioEmail" required placeholder="email@exemplo.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="usuarioLogin">Login *</label>
+                        <input type="text" id="usuarioLogin" required placeholder="Nome de usuário para login">
+                    </div>
+                    <div class="form-group">
+                        <label for="usuarioSenha">Senha</label>
+                        <input type="password" id="usuarioSenha" placeholder="Deixe em branco para manter a atual (ao editar)">
+                    </div>
+                    <div class="form-group">
+                        <label for="usuarioPerfil">Perfil *</label>
+                        <select id="usuarioPerfil" required>
+                            <option value="">Selecione...</option>
+                            <option value="Administrador">Administrador</option>
+                            <option value="Usuário">Usuário</option>
+                            <option value="Operador">Operador</option>
+                            <option value="Visualizador">Visualizador</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="usuarioStatus">Status</label>
+                        <select id="usuarioStatus">
+                            <option value="Ativo">Ativo</option>
+                            <option value="Inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModalUsuario()">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados centralizados
+        let usuarios = getUsuarios();
+        let currentPageUsuarios = 1;
+        let autocompleteUsuarioNome, autocompleteUsuarioEmail;
+
+        function getFilteredUsuarios() {
+            const nome = (document.getElementById('filtroUsuarioNome')?.value || '').trim().toLowerCase();
+            const email = (document.getElementById('filtroUsuarioEmail')?.value || '').trim().toLowerCase();
+            const perfil = document.getElementById('filtroUsuarioPerfil')?.value || '';
+            const status = document.getElementById('filtroUsuarioStatus')?.value || '';
+            return usuarios.filter(u => {
+                if (nome && !(u.nome || '').toLowerCase().includes(nome)) return false;
+                if (email && !(u.email || '').toLowerCase().includes(email)) return false;
+                if (perfil && u.perfil !== perfil) return false;
+                if (status && u.status !== status) return false;
+                return true;
+            });
+        }
+        function aplicarFiltrosUsuarios() {
+            currentPageUsuarios = 1;
+            renderUsuarios();
+        }
+        function limparFiltrosUsuarios() {
+            ['filtroUsuarioNome', 'filtroUsuarioEmail', 'filtroUsuarioPerfil', 'filtroUsuarioStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            currentPageUsuarios = 1;
+            renderUsuarios();
+        }
+
+        function goToPageUsuarios(p) {
+            const filtered = getFilteredUsuarios();
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+            if (p < 1 || p > totalPages) return;
+            currentPageUsuarios = p;
+            renderUsuarios();
+        }
+
+        function renderUsuarios() {
+            const tbody = document.getElementById('usuariosTable');
+            const emptyState = document.getElementById('usuariosEmpty');
+            const paginationEl = document.getElementById('usuariosPagination');
+            tbody.innerHTML = '';
+            const filtered = getFilteredUsuarios();
+            if (filtered.length === 0) {
+                emptyState.style.display = 'block';
+                paginationEl.innerHTML = '';
+                return;
+            }
+            emptyState.style.display = 'none';
+            const start = (currentPageUsuarios - 1) * PER_PAGE;
+            const pageData = filtered.slice(start, start + PER_PAGE);
+            pageData.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                const statusBadge = u.status === 'Ativo' ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-danger">Inativo</span>';
+                tr.innerHTML = `
+                    <td onclick="abrirModalVerUsuario(${u.id})">${u.id}</td>
+                    <td onclick="abrirModalVerUsuario(${u.id})"><strong>${u.nome}</strong></td>
+                    <td onclick="abrirModalVerUsuario(${u.id})">${u.email}</td>
+                    <td onclick="abrirModalVerUsuario(${u.id})">${u.perfil}</td>
+                    <td onclick="abrirModalVerUsuario(${u.id})">${statusBadge}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); editUsuario(${u.id})">Editar</button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation(); deleteUsuario(${u.id})">Excluir</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            paginationEl.innerHTML = buildPaginationHTML(filtered.length, currentPageUsuarios, 'goToPageUsuarios');
+        }
+
+        function openModalUsuario() {
+            document.getElementById('modalUsuarioTitle').textContent = 'Novo Usuário';
+            document.getElementById('formUsuario').reset();
+            document.getElementById('usuarioId').value = '';
+            document.getElementById('usuarioSenha').removeAttribute('placeholder');
+            document.getElementById('usuarioSenha').placeholder = 'Digite a senha';
+            document.getElementById('usuarioSenha').required = true;
+            document.getElementById('modalUsuario').classList.add('active');
+        }
+
+        function closeModalUsuario() {
+            document.getElementById('modalUsuario').classList.remove('active');
+        }
+
+        function editUsuario(id) {
+            const u = usuarios.find(x => x.id == id);
+            if (!u) return;
+            document.getElementById('modalUsuarioTitle').textContent = 'Editar Usuário';
+            document.getElementById('usuarioId').value = u.id;
+            document.getElementById('usuarioNome').value = u.nome;
+            document.getElementById('usuarioEmail').value = u.email;
+            document.getElementById('usuarioLogin').value = u.login;
+            document.getElementById('usuarioSenha').value = '';
+            document.getElementById('usuarioSenha').placeholder = 'Deixe em branco para manter a atual';
+            document.getElementById('usuarioSenha').required = false;
+            document.getElementById('usuarioPerfil').value = u.perfil;
+            document.getElementById('usuarioStatus').value = u.status || 'Ativo';
+            document.getElementById('modalUsuario').classList.add('active');
+        }
+
+        function saveUsuario(e) {
+            e.preventDefault();
+            const id = document.getElementById('usuarioId').value;
+            const nome = document.getElementById('usuarioNome').value.trim();
+            const email = document.getElementById('usuarioEmail').value.trim();
+            const login = document.getElementById('usuarioLogin').value.trim();
+            const senha = document.getElementById('usuarioSenha').value;
+            const perfil = document.getElementById('usuarioPerfil').value;
+            const status = document.getElementById('usuarioStatus').value;
+            if (id) {
+                const idx = usuarios.findIndex(x => x.id == id);
+                if (idx >= 0) {
+                    const updated = { ...usuarios[idx], nome, email, login, perfil, status };
+                    if (senha) updated.senha = senha;
+                    usuarios[idx] = updated;
+                }
+            } else {
+                if (!senha) {
+                    alert('A senha é obrigatória para novo usuário.');
+                    return;
+                }
+                const newId = usuarios.length ? Math.max(...usuarios.map(x => x.id)) + 1 : 1;
+                usuarios.push({ id: newId, nome, email, login, senha, perfil, status: status || 'Ativo' });
+            }
+            localStorage.setItem('usuarios', JSON.stringify(usuarios));
+            renderUsuarios();
+            closeModalUsuario();
+        }
+
+        function deleteUsuario(id) {
+            if (confirm('Deseja realmente excluir este usuário?')) {
+                usuarios = usuarios.filter(x => x.id !== id);
+                const filtered = getFilteredUsuarios();
+                const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+                if (currentPageUsuarios > totalPages) currentPageUsuarios = totalPages;
+                localStorage.setItem('usuarios', JSON.stringify(usuarios));
+                renderUsuarios();
+            }
+        }
+
+        function abrirModalVerUsuario(id) {
+            const u = usuarios.find(x => x.id === id || x.id == id);
+            if (!u) return;
+
+            // Simular datas
+            const hoje = new Date();
+            const dataCadastro = new Date(hoje);
+            dataCadastro.setDate(dataCadastro.getDate() - (id * 30)); // Simular cadastro há alguns meses
+            const ultimoAcesso = new Date(hoje);
+            ultimoAcesso.setDate(ultimoAcesso.getDate() - (id % 7)); // Simular último acesso há alguns dias
+
+            // Calcular processos criados (simulação)
+            const processos = typeof gerarProcessos === 'function' ? gerarProcessos(18, typeof gerarClientes === 'function' ? gerarClientes() : []) : [];
+            const processosCriados = Math.floor(processos.length / usuarios.length) + (id % 3); // Simulação
+
+            document.getElementById('viewUsuarioNome').textContent = u.nome || '—';
+            document.getElementById('viewUsuarioId').textContent = u.id || '—';
+            document.getElementById('viewUsuarioNomeCompleto').textContent = u.nome || '—';
+            document.getElementById('viewUsuarioEmail').textContent = u.email || '—';
+            document.getElementById('viewUsuarioLogin').textContent = u.login || '—';
+            document.getElementById('viewUsuarioPerfil').textContent = u.perfil || '—';
+            document.getElementById('viewUsuarioStatus').innerHTML = u.status === 'Ativo' ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-danger">Inativo</span>';
+            document.getElementById('viewUsuarioDataCadastro').textContent = dataCadastro.toLocaleDateString('pt-BR');
+            document.getElementById('viewUsuarioUltimoAcesso').textContent = ultimoAcesso.toLocaleDateString('pt-BR') + ' ' + ultimoAcesso.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('viewUsuarioProcessosCriados').textContent = processosCriados;
+
+            document.getElementById('modalVerUsuario').classList.add('active');
+        }
+
+        function fecharModalVerUsuario() {
+            document.getElementById('modalVerUsuario').classList.remove('active');
+        }
+
+        document.getElementById('modalVerUsuario')?.addEventListener('click', function(e) {
+            if (e.target === this) fecharModalVerUsuario();
+        });
+
+        document.getElementById('headerUserName').textContent = sessionStorage.getItem('username') || 'Usuário';
+        renderUsuarios();
+
+        // Submenu Cadastros
+        function toggleSubmenu(event) {
+            event.preventDefault();
+            const parent = event.target.closest('.menu-item-parent');
+            parent.classList.toggle('open');
+        }
+
+        // Menu mobile
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleMobileMenu() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        }
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        sidebarOverlay.addEventListener('click', toggleMobileMenu);
+
+        document.querySelectorAll('.sidebar-nav .submenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                }
+            });
+        });
+
+        // Inicializar autocomplete
+        window.addEventListener('DOMContentLoaded', () => {
+            autocompleteUsuarioNome = initAutocomplete('filtroUsuarioNome', usuarios, {
+                minChars: 1,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(u => u.nome.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerNome = item.nome.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerNome.indexOf(lowerQuery);
+                    if (index === -1) return item.nome;
+                    const before = item.nome.substring(0, index);
+                    const match = item.nome.substring(index, index + query.length);
+                    const after = item.nome.substring(index + query.length);
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: () => aplicarFiltrosUsuarios()
+            });
+
+            autocompleteUsuarioEmail = initAutocomplete('filtroUsuarioEmail', usuarios, {
+                minChars: 1,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(u => u.email.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerEmail = item.email.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerEmail.indexOf(lowerQuery);
+                    if (index === -1) return item.email;
+                    const before = item.email.substring(0, index);
+                    const match = item.email.substring(index, index + query.length);
+                    const after = item.email.substring(index + query.length);
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: () => aplicarFiltrosUsuarios()
+            });
+
+            // Busca em tempo real ao digitar ou limpar
+            let debounceFiltroUsuarios;
+            function aplicarFiltroUsuariosAoDigitar() {
+                clearTimeout(debounceFiltroUsuarios);
+                debounceFiltroUsuarios = setTimeout(function() {
+                    currentPageUsuarios = 1;
+                    renderUsuarios();
+                }, 300);
+            }
+            document.getElementById('filtroUsuarioNome').addEventListener('input', aplicarFiltroUsuariosAoDigitar);
+            document.getElementById('filtroUsuarioEmail').addEventListener('input', aplicarFiltroUsuariosAoDigitar);
+            document.getElementById('filtroUsuarioPerfil').addEventListener('change', aplicarFiltrosUsuarios);
+            document.getElementById('filtroUsuarioStatus').addEventListener('change', aplicarFiltrosUsuarios);
+        });
+    </script>
+</body>
+</html>

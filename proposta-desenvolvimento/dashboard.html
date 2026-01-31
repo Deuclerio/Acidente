@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ribeiro e Filho - Assessoria em Acidentes | Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <script>
+        if (!sessionStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <div class="dashboard-layout">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <!-- Coloque sua logomarca: <img src="logo.png" alt="Ribeiro e Filho" class="brand-logo"> -->
+                <div class="brand-name">Ribeiro e Filho</div>
+                <div class="brand-tagline">Assessoria em Acidentes</div>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li>
+                        <a href="dashboard.html" class="active">Dashboard</a>
+                    </li>
+                    <li class="menu-item-parent">
+                        <a onclick="toggleSubmenu(event)">
+                            <span>Cadastros</span>
+                            <span class="menu-arrow">▶</span>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="clientes.html">Clientes</a></li>
+                            <li><a href="hospitais.html">Hospitais</a></li>
+                            <li><a href="seguradoras.html">Seguradoras</a></li>
+                            <li><a href="usuarios.html">Usuários</a></li>
+                            <li><a href="processos.html">Processos</a></li>
+                            <li><a href="pagamentos.html">Pagamentos Mensais</a></li>
+                            <li><a href="prescricoes.html">Prescrição</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="acidentes.html">Acidentes</a>
+                    </li>
+                    <li>
+                        <a href="relatorios.html">Relatórios</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Dashboard</h1>
+                <div class="header-user">
+                    <span class="header-user-name" id="headerUserName"></span>
+                    <a href="index.html" class="logout-btn" onclick="sessionStorage.removeItem('loggedIn'); sessionStorage.removeItem('username');">Sair</a>
+                </div>
+            </header>
+            <p class="dashboard-welcome">Olá, <strong id="userName"></strong>! Bem-vindo ao sistema Ribeiro e Filho Assessoria em Acidentes.</p>
+
+            <!-- Cards de indicadores - Dashboard principal -->
+            <div class="dashboard-kpis">
+                <a href="processos.html" class="kpi-card kpi-card-link">
+                    <div class="kpi-icon kpi-icon-processos">📋</div>
+                    <div class="kpi-content">
+                        <span class="kpi-value" id="totalProcessos">0</span>
+                        <span class="kpi-label">Total de processos</span>
+                    </div>
+                </a>
+                <a href="processos.html" class="kpi-card kpi-card-link">
+                    <div class="kpi-icon kpi-icon-andamento">⚙️</div>
+                    <div class="kpi-content">
+                        <span class="kpi-value" id="processosEmAndamento">0</span>
+                        <span class="kpi-label">Em andamento</span>
+                    </div>
+                </a>
+                <a href="prescricoes.html" class="kpi-card kpi-card-link">
+                    <div class="kpi-icon kpi-icon-prescricao">⚠️</div>
+                    <div class="kpi-content">
+                        <span class="kpi-value" id="proximosPrescricao">0</span>
+                        <span class="kpi-label">Próximos da prescrição</span>
+                    </div>
+                </a>
+                <a href="pagamentos.html" class="kpi-card kpi-card-link">
+                    <div class="kpi-icon kpi-icon-pagamentos">💰</div>
+                    <div class="kpi-content">
+                        <span class="kpi-value" id="pagamentosDoMes">0</span>
+                        <span class="kpi-label">Pagamentos do mês</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="dashboard-charts">
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h2>Clientes cadastrados (últimos meses)</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartClientes"></canvas>
+                    </div>
+                </div>
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h2>Hospitais por estado</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartHospitais"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-charts">
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h2>Seguradoras por estado</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartSeguradoras"></canvas>
+                    </div>
+                </div>
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h2>Usuários por perfil</h2>
+                    </div>
+                    <div class="chart-container chart-container--pie">
+                        <canvas id="chartPerfis"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-charts dashboard-charts--single">
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h2>Status dos usuários</h2>
+                    </div>
+                    <div class="chart-container chart-container--donut">
+                        <canvas id="chartStatus"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="mock-data.js"></script>
+    <script>
+        const username = sessionStorage.getItem('username') || 'Usuário';
+        document.getElementById('userName').textContent = username;
+        document.getElementById('headerUserName').textContent = username;
+
+        // Submenu Cadastros
+        function toggleSubmenu(event) {
+            event.preventDefault();
+            const parent = event.target.closest('.menu-item-parent');
+            parent.classList.toggle('open');
+        }
+
+        // Menu mobile
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleMobileMenu() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        }
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        sidebarOverlay.addEventListener('click', toggleMobileMenu);
+
+        // Fechar menu ao clicar em um link (exceto o toggle do submenu)
+        document.querySelectorAll('.sidebar-nav .submenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                }
+            });
+        });
+
+        // Dados centralizados - garante consistência entre todas as páginas
+        let clientesData = getClientes();
+        let processosData = getProcessos();
+        let prescricoesData = getPrescricoes();
+        let pagamentosData = getPagamentos();
+        let hospitaisData = getHospitais();
+        let seguradorasData = getSeguradoras();
+        let usuariosData = getUsuarios();
+
+        // KPIs do Dashboard (Total de processos, Em andamento, Próximos da prescrição, Pagamentos do mês)
+        const totalProcessos = processosData.length;
+        const statusEmAndamento = ['Em andamento', 'Em análise', 'Aguardando audiência', 'Aguardando decisão'];
+        const processosEmAndamento = processosData.filter(p => statusEmAndamento.includes(p.status || '')).length;
+
+        function calcularDiasPrescricao(dataLimite) {
+            if (!dataLimite) return null;
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const limite = new Date(dataLimite + 'T00:00:00');
+            return Math.ceil((limite - hoje) / (1000 * 60 * 60 * 24));
+        }
+        const proximosPrescricao = prescricoesData.filter(pr => {
+            const dias = calcularDiasPrescricao(pr.dataLimite);
+            return dias === null || dias <= 90;
+        }).length;
+
+        const mesAtual = String(new Date().getFullYear()) + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+        const pagamentosDoMes = pagamentosData.filter(pg => (pg.competencia || '').substring(0, 7) === mesAtual).length;
+
+        document.getElementById('totalProcessos').textContent = totalProcessos;
+        document.getElementById('processosEmAndamento').textContent = processosEmAndamento;
+        document.getElementById('proximosPrescricao').textContent = proximosPrescricao;
+        document.getElementById('pagamentosDoMes').textContent = pagamentosDoMes;
+
+        // Cores da marca
+        const cores = {
+            primary: '#1e3a5f',
+            primaryLight: '#2a4a6d',
+            accent: '#c9a227',
+            accentDark: '#a67c00',
+            success: '#22c55e',
+            danger: '#c53030',
+            cinza: '#64748b',
+            cinzaClaro: '#94a3b8'
+        };
+
+        // Meses para o gráfico de clientes (simulado: distribui total nos últimos 6 meses)
+        const mesesLabels = [];
+        const hoje = new Date();
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+            mesesLabels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
+        }
+        const totalC = clientesData.length;
+        const percentuais = [0.05, 0.10, 0.15, 0.20, 0.25];
+        let clientesPorMes = [0, 0, 0, 0, 0, 0];
+        if (totalC > 0) {
+            for (let i = 0; i < 5; i++) clientesPorMes[i] = Math.round(totalC * percentuais[i]);
+            clientesPorMes[5] = totalC - clientesPorMes.slice(0, 5).reduce((a, b) => a + b, 0);
+        }
+
+        new Chart(document.getElementById('chartClientes'), {
+            type: 'bar',
+            data: {
+                labels: mesesLabels,
+                datasets: [{
+                    label: 'Clientes',
+                    data: clientesPorMes,
+                    backgroundColor: cores.primary,
+                    borderColor: cores.primaryLight,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+
+        // Hospitais por estado
+        const hospitaisEstado = {};
+        hospitaisData.forEach(h => {
+            const estado = h.estado || 'Não informado';
+            hospitaisEstado[estado] = (hospitaisEstado[estado] || 0) + 1;
+        });
+        const hospitaisLabels = Object.keys(hospitaisEstado).sort();
+        const hospitaisValues = hospitaisLabels.map(e => hospitaisEstado[e]);
+
+        new Chart(document.getElementById('chartHospitais'), {
+            type: 'bar',
+            data: {
+                labels: hospitaisLabels,
+                datasets: [{
+                    label: 'Hospitais',
+                    data: hospitaisValues,
+                    backgroundColor: cores.accent,
+                    borderColor: cores.accentDark,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+
+        // Seguradoras por estado
+        const seguradorasEstado = {};
+        seguradorasData.forEach(s => {
+            const estado = s.estado || 'Não informado';
+            seguradorasEstado[estado] = (seguradorasEstado[estado] || 0) + 1;
+        });
+        const seguradorasLabels = Object.keys(seguradorasEstado).sort();
+        const seguradorasValues = seguradorasLabels.map(e => seguradorasEstado[e]);
+
+        new Chart(document.getElementById('chartSeguradoras'), {
+            type: 'bar',
+            data: {
+                labels: seguradorasLabels,
+                datasets: [{
+                    label: 'Seguradoras',
+                    data: seguradorasValues,
+                    backgroundColor: cores.primaryLight,
+                    borderColor: cores.primary,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+
+        // Usuários por perfil
+        const perfisCount = {};
+        usuariosData.forEach(u => {
+            const p = u.perfil || 'Usuário';
+            perfisCount[p] = (perfisCount[p] || 0) + 1;
+        });
+        const perfisLabels = Object.keys(perfisCount);
+        const perfisValues = Object.values(perfisCount);
+        const coresPerfis = [cores.primary, cores.accent, cores.primaryLight, cores.accentDark, cores.cinza];
+
+        new Chart(document.getElementById('chartPerfis'), {
+            type: 'pie',
+            data: {
+                labels: perfisLabels,
+                datasets: [{
+                    data: perfisValues,
+                    backgroundColor: perfisLabels.map((_, i) => coresPerfis[i % coresPerfis.length]),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Status dos usuários (Ativo / Inativo)
+        const ativos = usuariosData.filter(u => (u.status || 'Ativo') === 'Ativo').length;
+        const inativos = usuariosData.length - ativos;
+
+        new Chart(document.getElementById('chartStatus'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Ativos', 'Inativos'],
+                datasets: [{
+                    data: [ativos, inativos],
+                    backgroundColor: [cores.success, cores.danger],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

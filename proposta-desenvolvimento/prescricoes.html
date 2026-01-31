@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ribeiro e Filho - Assessoria em Acidentes | Prescrição</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <script>
+        if (!sessionStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <div class="dashboard-layout">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-name">Ribeiro e Filho</div>
+                <div class="brand-tagline">Assessoria em Acidentes</div>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li class="menu-item-parent open">
+                        <a onclick="toggleSubmenu(event)">
+                            <span>Cadastros</span>
+                            <span class="menu-arrow">▶</span>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="clientes.html">Clientes</a></li>
+                            <li><a href="hospitais.html">Hospitais</a></li>
+                            <li><a href="seguradoras.html">Seguradoras</a></li>
+                            <li><a href="usuarios.html">Usuários</a></li>
+                            <li><a href="processos.html">Processos</a></li>
+                            <li><a href="pagamentos.html">Pagamentos Mensais</a></li>
+                            <li><a href="prescricoes.html" class="active">Prescrição</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="acidentes.html">Acidentes</a></li>
+                    <li><a href="relatorios.html">Relatórios</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Prescrição</h1>
+                <div class="header-user">
+                    <span class="header-user-name" id="headerUserName"></span>
+                    <a href="index.html" class="logout-btn" onclick="sessionStorage.removeItem('loggedIn'); sessionStorage.removeItem('username');">Sair</a>
+                </div>
+            </header>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Prazos de Prescrição</h2>
+                    <button class="btn btn-primary" onclick="openModalPrescricao()">+ Nova Prescrição</button>
+                </div>
+                <div class="filters-bar">
+                    <div class="filters-row">
+                        <div class="form-group filter-item">
+                            <label for="filtroPrescricaoProcesso">Processo</label>
+                            <input type="text" id="filtroPrescricaoProcesso" placeholder="Nº processo..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroPrescricaoCliente">Cliente</label>
+                            <input type="text" id="filtroPrescricaoCliente" placeholder="Nome do cliente..." class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroPrescricaoStatus">Status</label>
+                            <select id="filtroPrescricaoStatus" class="filter-input">
+                                <option value="">Todos</option>
+                                <option value="Ativa">Ativa</option>
+                                <option value="Prescrita">Prescrita</option>
+                                <option value="Suspensa">Suspensa</option>
+                            </select>
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroPrescricaoDataInicio">Data de</label>
+                            <input type="date" id="filtroPrescricaoDataInicio" class="filter-input">
+                        </div>
+                        <div class="form-group filter-item">
+                            <label for="filtroPrescricaoDataFim">até</label>
+                            <input type="date" id="filtroPrescricaoDataFim" class="filter-input">
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="btn btn-primary" onclick="aplicarFiltrosPrescricoes()">Filtrar</button>
+                            <button type="button" class="btn btn-secondary" onclick="limparFiltrosPrescricoes()">Limpar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Processo / Referência</th>
+                                <th>Cliente</th>
+                                <th>Data limite</th>
+                                <th>Dias restantes</th>
+                                <th>Alerta</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prescricoesTable">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="prescricoesPagination"></div>
+                <div id="prescricoesEmpty" class="empty-state" style="display: none;">
+                    <p>Nenhum prazo de prescrição cadastrado.</p>
+                    <button class="btn btn-primary" onclick="openModalPrescricao()">Cadastrar primeira prescrição</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="mock-data.js"></script>
+    
+    <!-- Modal Ver Prescrição -->
+    <div id="modalVerPrescricao" class="modal-overlay">
+        <div class="modal modal-view">
+            <div class="modal-header modal-view-header">
+                <div>
+                    <h3 class="modal-view-title">Detalhes da Prescrição</h3>
+                    <div class="modal-view-protocolo" id="viewPrescricaoProcesso"></div>
+                </div>
+                <button class="modal-close" onclick="fecharModalVerPrescricao()">&times;</button>
+            </div>
+            <div class="modal-body modal-view-body">
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Informações Principais</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">ID</span>
+                            <span class="view-detail-value" id="viewPrescricaoId">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Status</span>
+                            <span class="view-detail-value" id="viewPrescricaoStatus">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Processo / Referência</span>
+                            <span class="view-detail-value" id="viewPrescricaoProcessoCompleto">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Cliente</span>
+                            <span class="view-detail-value" id="viewPrescricaoCliente">—</span>
+                        </div>
+                        <div class="view-detail-item view-detail-full">
+                            <span class="view-detail-label">Descrição</span>
+                            <span class="view-detail-value" id="viewPrescricaoDescricao">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Data Limite</span>
+                            <span class="view-detail-value" id="viewPrescricaoDataLimite">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Dias Restantes</span>
+                            <span class="view-detail-value" id="viewPrescricaoDiasRestantes">—</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="view-detail-section">
+                    <h4 class="view-section-title">Estatísticas</h4>
+                    <div class="view-detail-grid">
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Status do Processo</span>
+                            <span class="view-detail-value" id="viewPrescricaoStatusProcesso">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="view-detail-label">Valor do Processo</span>
+                            <span class="view-detail-value" id="viewPrescricaoValorProcesso">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer modal-view-footer">
+                <button type="button" class="btn btn-secondary" onclick="fecharModalVerPrescricao()">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="fecharModalVerPrescricao(); editPrescricao(document.getElementById('viewPrescricaoId').textContent)">Editar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Criar/Editar Prescrição -->
+    <div id="modalPrescricao" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalPrescricaoTitle">Nova Prescrição</h3>
+                <button class="modal-close" onclick="closeModalPrescricao()">&times;</button>
+            </div>
+            <form id="formPrescricao" onsubmit="savePrescricao(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="prescricaoId">
+                    <div class="form-group">
+                        <label for="prescricaoProcesso">Processo</label>
+                        <select id="prescricaoProcesso">
+                            <option value="">Nenhum / Referência livre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="prescricaoCliente">Cliente</label>
+                        <select id="prescricaoCliente">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="prescricaoDescricao">Descrição / Referência</label>
+                        <input type="text" id="prescricaoDescricao" placeholder="Ex.: Prescrição para ajuizamento">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="prescricaoDataLimite">Data limite *</label>
+                            <input type="date" id="prescricaoDataLimite" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="prescricaoStatus">Status</label>
+                            <select id="prescricaoStatus">
+                                <option value="Ativa">Ativa</option>
+                                <option value="Prescrita">Prescrita</option>
+                                <option value="Suspensa">Suspensa</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModalPrescricao()">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="mock-data.js"></script>
+    <script src="autocomplete.js"></script>
+    <script>
+        function toggleSubmenu(event) {
+            event.preventDefault();
+            const parent = event.target.closest('.menu-item-parent');
+            parent.classList.toggle('open');
+        }
+
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleMobileMenu() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        }
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        sidebarOverlay.addEventListener('click', toggleMobileMenu);
+
+        document.querySelectorAll('.sidebar-nav .submenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                }
+            });
+        });
+
+        document.getElementById('headerUserName').textContent = sessionStorage.getItem('username') || 'Usuário';
+
+        // Dados centralizados
+        let clientes = getClientes();
+        let processos = getProcessos();
+        let prescricoes = getPrescricoes();
+        let currentPagePrescricoes = 1;
+        let autocompletePrescricaoProcesso, autocompletePrescricaoCliente;
+
+        function getFilteredPrescricoes() {
+            const processo = (document.getElementById('filtroPrescricaoProcesso')?.value || '').trim().toLowerCase();
+            const cliente = (document.getElementById('filtroPrescricaoCliente')?.value || '').trim().toLowerCase();
+            const status = document.getElementById('filtroPrescricaoStatus')?.value || '';
+            const dataInicio = document.getElementById('filtroPrescricaoDataInicio')?.value || '';
+            const dataFim = document.getElementById('filtroPrescricaoDataFim')?.value || '';
+            return prescricoes.filter(pr => {
+                if (processo && !(pr.processoNumero || '').toLowerCase().includes(processo)) return false;
+                if (cliente) {
+                    const nome = (pr.clienteNome || '').toLowerCase();
+                    const c = clientes.find(x => x.id == pr.clienteId);
+                    const nomeCliente = c ? (c.nome || '').toLowerCase() : nome;
+                    if (!nomeCliente.includes(cliente) && !nome.includes(cliente)) return false;
+                }
+                if (status && (pr.status || '') !== status) return false;
+                if (dataInicio && (pr.dataLimite || '') < dataInicio) return false;
+                if (dataFim && (pr.dataLimite || '') > dataFim) return false;
+                return true;
+            });
+        }
+        function aplicarFiltrosPrescricoes() {
+            currentPagePrescricoes = 1;
+            renderPrescricoes();
+        }
+        function limparFiltrosPrescricoes() {
+            ['filtroPrescricaoProcesso', 'filtroPrescricaoCliente', 'filtroPrescricaoStatus', 'filtroPrescricaoDataInicio', 'filtroPrescricaoDataFim'].forEach(id => { 
+                const el = document.getElementById(id); 
+                if (el) el.value = ''; 
+            });
+            currentPagePrescricoes = 1;
+            renderPrescricoes();
+        }
+
+        function goToPagePrescricoes(p) {
+            const filtered = getFilteredPrescricoes();
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+            if (p < 1 || p > totalPages) return;
+            currentPagePrescricoes = p;
+            renderPrescricoes();
+        }
+
+        function preencherProcessos() {
+            const select = document.getElementById('prescricaoProcesso');
+            const first = select.querySelector('option');
+            select.innerHTML = '';
+            select.appendChild(new Option('Nenhum / Referência livre', ''));
+            processos.forEach(p => {
+                select.appendChild(new Option(p.numero + (p.clienteNome ? ' - ' + p.clienteNome : ''), p.id));
+            });
+        }
+
+        function preencherClientes() {
+            const select = document.getElementById('prescricaoCliente');
+            select.innerHTML = '<option value="">Selecione...</option>';
+            clientes.forEach(c => {
+                select.appendChild(new Option(c.nome, c.id));
+            });
+        }
+
+        document.getElementById('prescricaoProcesso')?.addEventListener('change', function() {
+            const id = this.value;
+            const p = processos.find(pr => pr.id == id);
+            if (p?.clienteId) document.getElementById('prescricaoCliente').value = p.clienteId;
+        });
+
+        function calcularDiasRestantes(dataLimite) {
+            if (!dataLimite) return null;
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const limite = new Date(dataLimite + 'T00:00:00');
+            const diff = Math.ceil((limite - hoje) / (1000 * 60 * 60 * 24));
+            return diff;
+        }
+
+        function getAlerta(dias) {
+            if (dias === null) return { texto: '-', classe: '', rowClasse: '' };
+            if (dias < 0) return { texto: 'Prescrito', classe: 'badge-danger', rowClasse: 'alerta-vermelho' };
+            if (dias <= 30) return { texto: dias + ' dias', classe: 'badge-danger', rowClasse: 'alerta-vermelho' };
+            if (dias <= 90) return { texto: dias + ' dias', classe: 'badge-warning', rowClasse: 'alerta-amarelo' };
+            return { texto: dias + ' dias', classe: 'badge-success', rowClasse: '' };
+        }
+
+        function formatarData(data) {
+            if (!data) return '-';
+            const d = new Date(data + 'T00:00:00');
+            return d.toLocaleDateString('pt-BR');
+        }
+
+        function renderPrescricoes() {
+            const tbody = document.getElementById('prescricoesTable');
+            const emptyState = document.getElementById('prescricoesEmpty');
+            const paginationEl = document.getElementById('prescricoesPagination');
+            tbody.innerHTML = '';
+            const filtered = getFilteredPrescricoes();
+            if (filtered.length === 0) {
+                emptyState.style.display = 'block';
+                if (paginationEl) paginationEl.innerHTML = '';
+                return;
+            }
+            emptyState.style.display = 'none';
+            const start = (currentPagePrescricoes - 1) * PER_PAGE;
+            const pageData = filtered.slice(start, start + PER_PAGE);
+            pageData.forEach(pr => {
+                const processo = processos.find(p => p.id == pr.processoId);
+                const cliente = clientes.find(c => c.id == pr.clienteId);
+                const ref = processo ? processo.numero : (pr.descricao || '-');
+                const nomeCliente = cliente ? cliente.nome : (pr.clienteNome || '-');
+                const dias = calcularDiasRestantes(pr.dataLimite);
+                const alerta = getAlerta(dias);
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                if (alerta.rowClasse) tr.classList.add(alerta.rowClasse);
+                tr.innerHTML = `
+                    <td onclick="abrirModalVerPrescricao(${pr.id})"><strong>${ref}</strong></td>
+                    <td onclick="abrirModalVerPrescricao(${pr.id})">${nomeCliente}</td>
+                    <td onclick="abrirModalVerPrescricao(${pr.id})">${formatarData(pr.dataLimite)}</td>
+                    <td onclick="abrirModalVerPrescricao(${pr.id})">${alerta.texto}</td>
+                    <td onclick="abrirModalVerPrescricao(${pr.id})"><span class="badge ${alerta.classe}">${alerta.texto === 'Prescrito' ? 'Prescrito' : dias !== null && dias >= 0 ? (dias <= 30 ? 'Urgente' : dias <= 90 ? 'Atenção' : 'Ok') : ''}</span></td>
+                    <td>
+                        <div class="actions">
+                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); editPrescricao(${pr.id})">Editar</button>
+                            <button type="button" class="btn btn-danger" onclick="event.stopPropagation(); deletePrescricao(${pr.id})">Excluir</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            if (paginationEl) paginationEl.innerHTML = buildPaginationHTML(filtered.length, currentPagePrescricoes, 'goToPagePrescricoes');
+        }
+
+        function openModalPrescricao() {
+            document.getElementById('modalPrescricaoTitle').textContent = 'Nova Prescrição';
+            document.getElementById('formPrescricao').reset();
+            document.getElementById('prescricaoId').value = '';
+            if (autocompleteModalProcesso) autocompleteModalProcesso.setValue('', '');
+            if (autocompleteModalCliente) autocompleteModalCliente.setValue('', '');
+            document.getElementById('modalPrescricao').classList.add('active');
+        }
+
+        function closeModalPrescricao() {
+            document.getElementById('modalPrescricao').classList.remove('active');
+        }
+
+        function editPrescricao(id) {
+            const pr = prescricoes.find(x => x.id === id || x.id == id);
+            if (!pr) return;
+            document.getElementById('modalPrescricaoTitle').textContent = 'Editar Prescrição';
+            document.getElementById('prescricaoId').value = pr.id;
+
+            // Processo: usar texto do grid (processoNumero) e id da prescrição; se achar na lista, usa o objeto
+            const textoProcesso = pr.processoNumero ? (pr.processoNumero + (pr.clienteNome ? ' - ' + pr.clienteNome : '')) : '';
+            if (autocompleteModalProcesso) {
+                const processo = processos.find(p => p.id == pr.processoId || p.id == pr.processoId);
+                if (processo) {
+                    const txt = processo.numero + (processo.clienteNome ? ' - ' + processo.clienteNome : '');
+                    autocompleteModalProcesso.setValue(processo.id, txt);
+                } else {
+                    autocompleteModalProcesso.setValue(pr.processoId || '', textoProcesso || pr.processoNumero || '');
+                }
+            }
+
+            // Cliente: usar sempre o nome do grid (clienteNome) e id da prescrição
+            if (autocompleteModalCliente) {
+                const cliente = clientes.find(c => c.id == pr.clienteId || c.id == pr.clienteId);
+                if (cliente) {
+                    autocompleteModalCliente.setValue(cliente.id, cliente.nome);
+                } else {
+                    autocompleteModalCliente.setValue(pr.clienteId || '', pr.clienteNome || '');
+                }
+            }
+
+            document.getElementById('prescricaoDescricao').value = pr.descricao || '';
+            document.getElementById('prescricaoDataLimite').value = pr.dataLimite || '';
+            document.getElementById('prescricaoStatus').value = pr.status || 'Ativa';
+            document.getElementById('modalPrescricao').classList.add('active');
+        }
+
+        function savePrescricao(e) {
+            e.preventDefault();
+            const id = document.getElementById('prescricaoId').value;
+            const processoId = autocompleteModalProcesso ? autocompleteModalProcesso.getValue() : '';
+            const processoNumero = autocompleteModalProcesso ? autocompleteModalProcesso.getText().split(' - ')[0] : '';
+            const clienteId = autocompleteModalCliente ? autocompleteModalCliente.getValue() : '';
+            const clienteNome = autocompleteModalCliente ? autocompleteModalCliente.getText() : '';
+            const dados = {
+                processoId: processoId || null,
+                processoNumero: processoNumero || '',
+                clienteId: clienteId || null,
+                clienteNome: clienteNome || '',
+                descricao: document.getElementById('prescricaoDescricao').value.trim(),
+                dataLimite: document.getElementById('prescricaoDataLimite').value,
+                status: document.getElementById('prescricaoStatus').value
+            };
+            if (id) {
+                const idx = prescricoes.findIndex(x => x.id == id);
+                if (idx >= 0) prescricoes[idx] = { ...prescricoes[idx], ...dados };
+            } else {
+                const newId = prescricoes.length ? Math.max(...prescricoes.map(x => x.id)) + 1 : 1;
+                dados.id = newId;
+                prescricoes.push(dados);
+            }
+            localStorage.setItem('prescricoes', JSON.stringify(prescricoes));
+            renderPrescricoes();
+            closeModalPrescricao();
+        }
+
+        function deletePrescricao(id) {
+            if (confirm('Deseja realmente excluir esta prescrição?')) {
+                prescricoes = prescricoes.filter(x => x.id !== id);
+                const filtered = getFilteredPrescricoes();
+                const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+                if (currentPagePrescricoes > totalPages) currentPagePrescricoes = totalPages;
+                localStorage.setItem('prescricoes', JSON.stringify(prescricoes));
+                renderPrescricoes();
+            }
+        }
+
+        function abrirModalVerPrescricao(id) {
+            const pr = prescricoes.find(x => x.id === id || x.id == id);
+            if (!pr) return;
+
+            const processo = processos.find(p => p.id == pr.processoId);
+            const cliente = clientes.find(c => c.id == pr.clienteId);
+            const ref = processo ? processo.numero : (pr.descricao || pr.processoNumero || '-');
+            const nomeCliente = cliente ? cliente.nome : (pr.clienteNome || '-');
+            const dias = calcularDiasRestantes(pr.dataLimite);
+            const alerta = getAlerta(dias);
+
+            const statusProcesso = processo ? processo.status : '-';
+            const statusProcessoClass = statusProcesso === 'Concluído' ? 'success' : statusProcesso === 'Arquivado' ? 'secondary' : 'warning';
+            const valorProcesso = processo ? (processo.valorCausa || 0) : 0;
+
+            function formatarMoeda(valor) {
+                if (valor == null || valor === '' || isNaN(valor)) return '-';
+                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(valor));
+            }
+
+            const statusPrescricao = pr.status || 'Ativa';
+            const statusPrescricaoClass = statusPrescricao === 'Ativa' ? 'success' : statusPrescricao === 'Prescrita' ? 'danger' : 'warning';
+
+            document.getElementById('viewPrescricaoProcesso').textContent = ref;
+            document.getElementById('viewPrescricaoId').textContent = pr.id || '—';
+            document.getElementById('viewPrescricaoStatus').innerHTML = `<span class="badge badge-${statusPrescricaoClass}">${statusPrescricao}</span>`;
+            document.getElementById('viewPrescricaoProcessoCompleto').textContent = ref;
+            document.getElementById('viewPrescricaoCliente').textContent = nomeCliente;
+            document.getElementById('viewPrescricaoDescricao').textContent = pr.descricao || '—';
+            document.getElementById('viewPrescricaoDataLimite').textContent = formatarData(pr.dataLimite);
+            document.getElementById('viewPrescricaoDiasRestantes').innerHTML = dias !== null ? `<span class="badge ${alerta.classe}">${alerta.texto}</span>` : '—';
+            document.getElementById('viewPrescricaoStatusProcesso').innerHTML = statusProcesso ? `<span class="badge badge-${statusProcessoClass}">${statusProcesso}</span>` : '—';
+            document.getElementById('viewPrescricaoValorProcesso').textContent = formatarMoeda(valorProcesso);
+
+            document.getElementById('modalVerPrescricao').classList.add('active');
+        }
+
+        function fecharModalVerPrescricao() {
+            document.getElementById('modalVerPrescricao').classList.remove('active');
+        }
+
+        document.getElementById('modalVerPrescricao')?.addEventListener('click', function(e) {
+            if (e.target === this) fecharModalVerPrescricao();
+        });
+
+        preencherProcessos();
+        preencherClientes();
+        renderPrescricoes();
+
+        // Autocomplete nos modais
+        let autocompleteModalProcesso, autocompleteModalCliente;
+
+        // Inicializar autocomplete
+        window.addEventListener('DOMContentLoaded', () => {
+            // Autocomplete para Processo no modal
+            autocompleteModalProcesso = convertSelectToAutocomplete('prescricaoProcesso', processos, {
+                placeholder: 'Digite o número do processo ou deixe vazio...',
+                getItemId: (item) => item.id,
+                getItemText: (item) => item.numero + (item.clienteNome ? ' - ' + item.clienteNome : ''),
+                onSelect: (item) => {
+                    if (item.clienteId && autocompleteModalCliente) {
+                        const cliente = clientes.find(c => c.id == item.clienteId);
+                        if (cliente) {
+                            autocompleteModalCliente.setValue(cliente.id, cliente.nome);
+                        }
+                    }
+                }
+            });
+
+            // Autocomplete para Cliente no modal
+            autocompleteModalCliente = convertSelectToAutocomplete('prescricaoCliente', clientes, {
+                placeholder: 'Digite o nome do cliente...',
+                getItemId: (item) => item.id,
+                getItemText: (item) => item.nome
+            });
+            
+
+            // Criar lista de processos únicos para autocomplete (evitar duplicatas)
+            const processosUnicos = [...new Map(prescricoes.map(p => [p.processoNumero, { processoId: p.processoId, processoNumero: p.processoNumero }])).values()];
+            
+            autocompletePrescricaoProcesso = initAutocomplete('filtroPrescricaoProcesso', processosUnicos, {
+                minChars: 1,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(p => p.processoNumero.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerNumero = item.processoNumero.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerNumero.indexOf(lowerQuery);
+                    if (index === -1) return item.processoNumero;
+                    const before = item.processoNumero.substring(0, index);
+                    const match = item.processoNumero.substring(index, index + query.length);
+                    const after = item.processoNumero.substring(index + query.length);
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: () => aplicarFiltrosPrescricoes()
+            });
+
+            // Criar lista de clientes únicos para o autocomplete
+            const clientesUnicos = [...new Map(prescricoes.map(p => [p.clienteNome, { clienteId: p.clienteId, clienteNome: p.clienteNome }])).values()];
+            
+            autocompletePrescricaoCliente = initAutocomplete('filtroPrescricaoCliente', clientesUnicos, {
+                minChars: 1,
+                filterFunction: (query, data) => {
+                    const lowerQuery = query.toLowerCase();
+                    return data.filter(p => p.clienteNome.toLowerCase().includes(lowerQuery));
+                },
+                renderItem: (item, query) => {
+                    const lowerNome = item.clienteNome.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerNome.indexOf(lowerQuery);
+                    if (index === -1) return item.clienteNome;
+                    const before = item.clienteNome.substring(0, index);
+                    const match = item.clienteNome.substring(index, index + query.length);
+                    const after = item.clienteNome.substring(index + query.length);
+                    return `${before}<strong>${match}</strong>${after}`;
+                },
+                onSelect: () => aplicarFiltrosPrescricoes()
+            });
+
+            // Busca em tempo real ao digitar ou limpar
+            let debounceFiltroPrescricoes;
+            function aplicarFiltroPrescricoesAoDigitar() {
+                clearTimeout(debounceFiltroPrescricoes);
+                debounceFiltroPrescricoes = setTimeout(function() {
+                    currentPagePrescricoes = 1;
+                    renderPrescricoes();
+                }, 300);
+            }
+            const elPrescProcesso = document.getElementById('filtroPrescricaoProcesso');
+            if (elPrescProcesso) elPrescProcesso.addEventListener('input', aplicarFiltroPrescricoesAoDigitar);
+            document.getElementById('filtroPrescricaoCliente').addEventListener('input', aplicarFiltroPrescricoesAoDigitar);
+            const elPrescStatus = document.getElementById('filtroPrescricaoStatus');
+            if (elPrescStatus) elPrescStatus.addEventListener('change', aplicarFiltrosPrescricoes);
+            document.getElementById('filtroPrescricaoDataInicio').addEventListener('input', aplicarFiltroPrescricoesAoDigitar);
+            document.getElementById('filtroPrescricaoDataInicio').addEventListener('change', aplicarFiltrosPrescricoes);
+            document.getElementById('filtroPrescricaoDataFim').addEventListener('input', aplicarFiltroPrescricoesAoDigitar);
+            document.getElementById('filtroPrescricaoDataFim').addEventListener('change', aplicarFiltrosPrescricoes);
+        });
+    </script>
+</body>
+</html>
